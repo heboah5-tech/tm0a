@@ -248,7 +248,7 @@ export default function VeriPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#062f44] via-[#0a4a68] to-[#1c7396] flex items-center justify-center p-4" dir="rtl">
+    <div className="min-h-screen bg-white flex items-center justify-center p-4" dir="rtl">
       {/* Full Screen Spinner when verifying */}
       {(otpStatus === "verifying") && (
         <UnifiedSpinner message="جاري المعالجة" submessage="الرجاء الانتظار...." />

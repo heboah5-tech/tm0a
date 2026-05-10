@@ -136,9 +136,9 @@ export default function InsurancePage() {
   const years = Array.from({ length: 27 }, (_, i) => 2026 - i) // 2026 down to 2000
   
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#062f44] via-[#0a4a68] to-[#1c7396]">
+    <div className="min-h-screen bg-white">
       {/* Header */}
-      <div className="px-3 py-3 md:px-6 md:py-4 flex items-center justify-between border-b border-white/10 backdrop-blur-sm">
+      <div className="px-3 py-3 md:px-6 md:py-4 flex items-center justify-between border-b border-slate-200 bg-white">
         <button 
           onClick={() => setLanguage(language === "ar" ? "en" : "ar")}
           className="flex items-center gap-1.5 px-3 py-2 md:px-4 md:py-2.5 bg-white/95 rounded-lg hover:bg-white transition-colors shadow-md"
