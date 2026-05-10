@@ -1,0 +1,31 @@
+kind = "web"
+previewPath = "/"
+title = "BeCare Insurance"
+version = "1.0.0"
+id = "artifacts/becare"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 24306
+
+[services.development]
+run = "pnpm --filter @workspace/becare run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/becare", "run", "build" ]
+publicDir = "artifacts/becare/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "24306"
+BASE_PATH = "/"
