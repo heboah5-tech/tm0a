@@ -177,9 +177,9 @@ export default function CheckPage() {
   }
   
   return (
-    <div className="min-h-screen bg-[#0a4a68]">
+    <div className="min-h-screen bg-gradient-to-br from-[#062f44] via-[#0a4a68] to-[#1c7396]">
       {/* Header */}
-      <div className="bg-[#0a4a68] px-3 py-3 md:px-6 md:py-4 flex items-center justify-between border-b border-white/10">
+      <div className="px-3 py-3 md:px-6 md:py-4 flex items-center justify-between border-b border-white/10 backdrop-blur-sm">
         <button 
           onClick={() => setLanguage(language === "ar" ? "en" : "ar")}
           className="flex items-center gap-1.5 px-3 py-2 md:px-4 md:py-2.5 bg-white/95 rounded-lg hover:bg-white transition-colors shadow-md"
@@ -187,13 +187,13 @@ export default function CheckPage() {
           <Globe className="w-4 h-4 md:w-5 md:h-5 text-[#0a4a68]" />
           <span className="text-[#0a4a68] font-semibold text-sm md:text-base">{language === "ar" ? "EN" : "AR"}</span>
         </button>
-        <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-white/10 border-2 border-white flex items-center justify-center shadow-md">
-          <span className="text-white text-xl md:text-2xl font-bold">B</span>
+        <div className="bg-white rounded-2xl px-3 py-2 shadow-lg">
+          <img src="/Bcare-logo.svg" alt="BeCare" className="h-7 md:h-8 w-auto" />
         </div>
       </div>
 
       {/* Step Indicator */}
-      <div className="bg-[#0a4a68] px-3 py-6 md:px-6 md:py-10 text-center border-b border-white/10">
+      <div className="px-3 py-6 md:px-6 md:py-10 text-center border-b border-white/10">
         <StepIndicator currentStep={4} />
       </div>
 

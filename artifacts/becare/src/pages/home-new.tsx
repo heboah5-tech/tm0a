@@ -225,23 +225,23 @@ export default function HomePage() {
   }
   
   return (
-    <div className="min-h-screen bg-[#0a4a68]">
+    <div className="min-h-screen bg-gradient-to-br from-[#062f44] via-[#0a4a68] to-[#1c7396]">
       {/* Header */}
-      <div className="bg-[#0a4a68] px-3 py-3 md:px-6 md:py-4 flex items-center justify-between border-b border-white/10">
+      <div className="px-3 py-3 md:px-6 md:py-4 flex items-center justify-between border-b border-white/10 backdrop-blur-sm">
         <button 
           onClick={() => setLanguage(language === "ar" ? "en" : "ar")}
-          className="flex items-center gap-1.5 px-3 py-2 md:px-4 md:py-2.5 bg-white/95 rounded-lg hover:bg-white transition-colors shadow-md"
+          className="flex items-center gap-1.5 px-3 py-2 md:px-4 md:py-2.5 bg-white/95 rounded-full hover:bg-white transition-colors shadow-md"
         >
           <Globe className="w-4 h-4 md:w-5 md:h-5 text-[#0a4a68]" />
           <span className="text-[#0a4a68] font-semibold text-sm md:text-base">{language === "ar" ? "EN" : "AR"}</span>
         </button>
-        <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-white/10 border-2 border-white flex items-center justify-center shadow-md">
-          <span className="text-white text-xl md:text-2xl font-bold">B</span>
+        <div className="bg-white rounded-2xl px-3 py-2 shadow-lg">
+          <img src="/Bcare-logo.svg" alt="BeCare" className="h-7 md:h-8 w-auto" />
         </div>
       </div>
 
       {/* Step Indicator */}
-      <div className="bg-[#0a4a68] px-3 py-6 md:px-6 md:py-10 text-center border-b border-white/10">
+      <div className="px-3 py-6 md:px-6 md:py-10 text-center border-b border-white/10">
         <StepIndicator currentStep={1} />
       </div>
 
@@ -249,7 +249,7 @@ export default function HomePage() {
       <div className="max-w-3xl mx-auto -mt-4 md:-mt-6 px-3 md:px-4 pb-6 md:pb-8">
         <div className="bg-white rounded-xl md:rounded-2xl shadow-xl overflow-hidden">
           {/* Tabs */}
-          <div className="grid grid-cols-4 text-center border-b" dir={language === "ar" ? "rtl" : "ltr"}>
+          <div className="grid grid-cols-4 text-center border-b border-slate-100 bg-gradient-to-b from-slate-50/50 to-white" dir={language === "ar" ? "rtl" : "ltr"}>
             {[
               { ar: "مركبات", en: "Vehicles", key: "vehicles" },
               { ar: "طبي", en: "Medical", key: "medical" },
@@ -259,13 +259,16 @@ export default function HomePage() {
               <button
                 key={tab.key}
                 onClick={() => setActiveTab(tab.ar)}
-                className={`py-3 md:py-4 font-semibold text-sm md:text-base lg:text-lg transition-all ${
+                className={`relative py-3.5 md:py-4 font-semibold text-sm md:text-base lg:text-lg transition-all ${
                   activeTab === tab.ar
-                    ? "text-[#0a4a68] border-b-3 bg-yellow-400/80"
-                    : "text-gray-500 hover:text-gray-700 hover:bg-gray-50"
+                    ? "text-[#0a4a68] bg-white"
+                    : "text-slate-500 hover:text-slate-700 hover:bg-slate-50"
                 }`}
               >
                 {language === "ar" ? tab.ar : tab.en}
+                {activeTab === tab.ar && (
+                  <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-12 h-1 rounded-t-full bg-gradient-to-l from-orange-400 to-amber-500" />
+                )}
               </button>
             ))}
           </div>
@@ -458,7 +461,7 @@ export default function HomePage() {
             {/* Submit Button */}
             <Button
               type="submit"
-              className="w-full h-12 md:h-14 bg-yellow-500 hover:bg-yellow-600 text-[#0a4a68] font-bold text-lg md:text-xl rounded-lg md:rounded-xl shadow-lg hover:shadow-xl transition-all"
+              className="w-full h-12 md:h-14 bg-gradient-to-l from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-bold text-lg md:text-xl rounded-xl shadow-[0_15px_35px_-10px_rgba(251,146,60,0.6)] hover:shadow-[0_20px_40px_-10px_rgba(251,146,60,0.8)] hover:-translate-y-0.5 transition-all"
             >
               {translations[language].showOffers}
             </Button>
