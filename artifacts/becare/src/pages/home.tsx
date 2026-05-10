@@ -41,13 +41,11 @@ export default function Page() {
         <div className="container mx-auto px-4 sm:px-6">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#0a4a68] to-[#1e7a9e] flex items-center justify-center shadow-md shadow-[#0a4a68]/20">
-                <span className="text-white font-extrabold text-sm tracking-tight">bC</span>
-              </div>
-              <div className="hidden sm:flex flex-col leading-tight">
-                <span className="text-[#0a4a68] font-extrabold text-lg">بي كير</span>
-                <span className="text-[10px] text-slate-500 tracking-wider">BeCare Insurance</span>
-              </div>
+              <img
+                src="/Bcare-logo.svg"
+                alt="BeCare"
+                className="h-9 sm:h-10 w-auto"
+              />
             </div>
 
             <div className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-50 border border-emerald-200/60">
@@ -407,14 +405,8 @@ export default function Page() {
             <div className="grid md:grid-cols-3 gap-10 mb-12 text-right">
               {/* Brand */}
               <div>
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-12 h-12 rounded-2xl bg-white flex items-center justify-center shadow-lg">
-                    <span className="text-[#0a4a68] font-extrabold text-sm">bC</span>
-                  </div>
-                  <div className="flex flex-col leading-tight">
-                    <span className="text-2xl font-extrabold">بي كير</span>
-                    <span className="text-xs text-white/60 tracking-wider">BeCare Insurance</span>
-                  </div>
+                <div className="mb-4 inline-flex items-center bg-white/95 rounded-2xl px-4 py-3 shadow-lg">
+                  <img src="/Bcare-logo.svg" alt="BeCare" className="h-10 w-auto" />
                 </div>
                 <p className="text-sm text-white/70 leading-relaxed">
                   منصة التأمين الذكية الأولى في المملكة العربية السعودية. حلول تأمين شاملة وموثوقة لكل أسرة سعودية.
