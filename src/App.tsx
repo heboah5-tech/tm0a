@@ -2,7 +2,6 @@ import { Switch, Route, Router as WouterRouter, useLocation } from "wouter";
 import { useEffect } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { OnlineTracker } from "@/components/online-tracker";
-import { GoogleAnalytics } from "@/components/google-analytics";
 
 import IndexPage from "@/pages/index";
 import HomePage from "@/pages/home";
@@ -47,7 +46,6 @@ function App() {
       </Switch>
       <Toaster />
       <OnlineTracker />
-      <GoogleAnalytics />
     </WouterRouter>
   );
 }
