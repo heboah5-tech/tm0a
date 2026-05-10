@@ -192,13 +192,9 @@ export default function CheckPage() {
         </div>
       </div>
 
-      {/* Step Indicator */}
-      <div className="px-3 py-6 md:px-6 md:py-10 text-center border-b border-white/10">
-        <StepIndicator currentStep={4} />
-      </div>
 
       {/* Main Content */}
-      <div className="max-w-3xl mx-auto -mt-4 md:-mt-6 px-3 md:px-4 pb-6 md:pb-8">
+      <div className="max-w-3xl mx-auto pt-6 md:pt-10 px-3 md:px-4 pb-6 md:pb-8">
         <div className="bg-white rounded-xl md:rounded-2xl shadow-xl overflow-hidden">
           <div className="p-4 md:p-6 lg:p-8">
             <h2 className="text-2xl md:text-3xl font-bold text-[#0a4a68] mb-4 md:mb-6 text-center">

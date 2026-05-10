@@ -151,13 +151,9 @@ export default function ComparisonPage() {
         </div>
       </div>
 
-      {/* Step Indicator */}
-      <div className="px-3 py-6 md:px-6 md:py-10 text-center border-b border-white/10">
-        <StepIndicator currentStep={3} />
-      </div>
 
       {/* Main Content */}
-      <div className="max-w-4xl mx-auto -mt-4 md:-mt-6 px-3 md:px-4 pb-6 md:pb-8">
+      <div className="max-w-4xl mx-auto pt-6 md:pt-10 px-3 md:px-4 pb-6 md:pb-8">
         {/* Bank Notice */}
         <div className="mb-4 md:mb-6">
           <div

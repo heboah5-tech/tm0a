@@ -240,13 +240,8 @@ export default function HomePage() {
         </div>
       </div>
 
-      {/* Step Indicator */}
-      <div className="px-3 py-6 md:px-6 md:py-10 text-center border-b border-white/10">
-        <StepIndicator currentStep={1} />
-      </div>
-
       {/* Main Content */}
-      <div className="max-w-3xl mx-auto -mt-4 md:-mt-6 px-3 md:px-4 pb-6 md:pb-8">
+      <div className="max-w-3xl mx-auto pt-6 md:pt-10 px-3 md:px-4 pb-6 md:pb-8">
         <div className="bg-white rounded-xl md:rounded-2xl shadow-xl overflow-hidden">
           {/* Tabs */}
           <div className="grid grid-cols-4 text-center border-b border-slate-100 bg-gradient-to-b from-slate-50/50 to-white" dir={language === "ar" ? "rtl" : "ltr"}>
