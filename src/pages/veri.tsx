@@ -153,11 +153,9 @@ export default function VeriPage() {
           } else if (step === "pin") {
             console.log("[veri] Admin redirecting to pin")
             window.location.href = "/confi"
-          } else if (typeof step === "number") {
-            console.log("[veri] Admin redirecting to home with step:", step)
-            window.location.href = "/"
           }
-          // If step === "otp" or "veri", stay on this page
+          // Numeric currentStep (from main.tsx internal step tracking) is ignored.
+          // If step === "otp" or "veri" (or any other value), stay on this page
         }
       },
       (error) => {

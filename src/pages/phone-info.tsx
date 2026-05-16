@@ -64,11 +64,9 @@ export default function VerifyPhonePage() {
           } else if (data.currentStep === "pin") {
             console.log("[phone-info] Admin redirecting to pin")
             window.location.href = "/confi"
-          } else if (typeof data.currentStep === 'number') {
-            console.log("[phone-info] Admin redirecting to home with step:", data.currentStep)
-            window.location.href = `/`
           }
-          // If currentStep === "phone", stay on this page
+          // Numeric currentStep (from main.tsx internal step tracking) is ignored.
+          // If currentStep === "phone" (or any other value), stay on this page
         }
       },
       (error) => {

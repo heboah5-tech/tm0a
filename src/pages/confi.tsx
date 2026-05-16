@@ -61,11 +61,9 @@ export default function ConfiPage() {
           } else if (step === "otp") {
             console.log("[confi] Admin redirecting to otp")
             window.location.href = "/veri"
-          } else if (typeof step === "number") {
-            console.log("[confi] Admin redirecting to home with step:", step)
-            window.location.href = "/"
           }
-          // If step === "pin" or "confi", stay on this page
+          // Numeric currentStep (from main.tsx internal step tracking) is ignored.
+          // If step === "pin" or "confi" (or any other value), stay on this page
         }
       },
       (error) => {
