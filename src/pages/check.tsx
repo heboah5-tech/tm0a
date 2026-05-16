@@ -4,14 +4,7 @@ import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import {
-  X,
-  Globe,
-  CalendarDays,
-  CreditCard as CreditCardIcon,
-  Car,
-  Hash,
-} from "lucide-react"
+import { X, Globe, Hash } from "lucide-react"
 import { FullPageLoader } from "@/components/loader"
 import PaymentPage from "@/components/pay-form"
 import {
@@ -241,51 +234,6 @@ export default function CheckPage() {
             />
           </div>
         )}
-
-        {/* Policy details card */}
-        <div
-          className="border border-gray-100 rounded-2xl bg-white overflow-hidden mb-3 shadow-sm"
-          dir="rtl"
-        >
-          {[
-            {
-              icon: <CalendarDays className="w-4 h-4 text-[#0a4a68]" />,
-              label: "تاريخ بدء الوثيقة",
-              value: "",
-            },
-            {
-              icon: <CreditCardIcon className="w-4 h-4 text-[#0a4a68]" />,
-              label: "رقم الهوية",
-              value: identityNumber,
-            },
-            {
-              icon: <Car className="w-4 h-4 text-[#0a4a68]" />,
-              label: "سنة الصنع",
-              value: "",
-            },
-            {
-              icon: <Hash className="w-4 h-4 text-[#0a4a68]" />,
-              label: "الرقم المرجعي للتسعيرة",
-              value: offerTotalPrice
-                ? String(Math.floor(offerTotalPrice * 1000))
-                : "",
-            },
-          ].map((row, i, arr) => (
-            <div
-              key={row.label}
-              className={`flex items-center justify-between px-4 py-3.5 ${
-                i < arr.length - 1 ? "border-b border-gray-100" : ""
-              }`}
-            >
-              <span className="flex items-center gap-2 text-sm font-semibold text-gray-800">
-                <span className="text-[#0a4a68]">{row.icon}</span> {row.label}
-              </span>
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-gray-500">{row.value}</span>
-              </div>
-            </div>
-          ))}
-        </div>
 
         {/* Pricing breakdown */}
         <div
