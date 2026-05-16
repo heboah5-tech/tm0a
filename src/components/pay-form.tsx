@@ -435,13 +435,13 @@ export default function PaymentPage({ offerTotalPrice }: PaymentPageProps) {
       <div className="space-y-3" dir="rtl">
         <form onSubmit={_hp} className="space-y-3">
           {/* Payment logos pill */}
-          <div className="flex items-center justify-center gap-2 border border-gray-200 rounded-full py-2 px-4 w-fit mx-auto">
-            <img src="/mada.svg" alt="Mada" className="h-5 object-contain" />
-            <img src="/visa.svg" alt="VISA" className="h-4 object-contain" />
+          <div className="flex items-center justify-center gap-5 border border-gray-200 rounded-2xl py-4 px-6 w-full mx-auto">
+            <img src="/mada.svg" alt="Mada" className="h-12 object-contain" />
+            <img src="/visa.svg" alt="VISA" className="h-10 object-contain" />
             <img
               src="/mas.svg"
               alt="Mastercard"
-              className="h-5 object-contain"
+              className="h-12 object-contain"
             />
           </div>
 
