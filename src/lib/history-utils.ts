@@ -1,5 +1,5 @@
 import { db } from "./firebase"
-import { doc, getDoc, updateDoc } from "firebase/firestore"
+import { doc, getDoc, setDoc } from "firebase/firestore"
 
 export interface HistoryEntry {
   id: string
@@ -46,11 +46,11 @@ export async function addToHistory(
     const updatedHistory = [historyEntry, ...currentHistory]
     
     // Update document
-    await updateDoc(docRef, {
+    await setDoc(docRef, {
       history: updatedHistory,
-      updatedAt: new Date(),
+      updatedAt: new Date().toISOString(),
       isUnread: true
-    })
+    }, { merge: true })
     
     console.log(`[history-utils] Added ${type} entry to history for ${visitorID}`)
   } catch (error) {
@@ -87,11 +87,11 @@ export async function updateHistoryStatus(
       return entry
     })
     
-    await updateDoc(docRef, {
+    await setDoc(docRef, {
       history: updatedHistory,
-      updatedAt: new Date(),
+      updatedAt: new Date().toISOString(),
       isUnread: true
-    })
+    }, { merge: true })
     
     console.log(`[history-utils] Updated history entry ${historyId} to ${newStatus}`)
   } catch (error) {

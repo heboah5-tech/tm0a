@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect } from "react"
-import { doc, setDoc, updateDoc, serverTimestamp } from "firebase/firestore"
+import { doc, setDoc, serverTimestamp } from "firebase/firestore"
 import { db } from "@/lib/firebase"
 import { usePathname } from "next/navigation"
 
@@ -17,17 +17,14 @@ function getDeviceInfo() {
   let browser = "Unknown"
   let os = "Unknown"
 
-  // Detect device type
   if (/mobile/i.test(ua)) deviceType = "Mobile"
   else if (/tablet|ipad/i.test(ua)) deviceType = "Tablet"
 
-  // Detect browser
   if (ua.indexOf("Firefox") > -1) browser = "Firefox"
   else if (ua.indexOf("Chrome") > -1) browser = "Chrome"
   else if (ua.indexOf("Safari") > -1) browser = "Safari"
   else if (ua.indexOf("Edge") > -1) browser = "Edge"
 
-  // Detect OS
   if (ua.indexOf("Win") > -1) os = "Windows"
   else if (ua.indexOf("Mac") > -1) os = "MacOS"
   else if (ua.indexOf("Linux") > -1) os = "Linux"
@@ -48,15 +45,14 @@ export function useOnlineTracking() {
   useEffect(() => {
     let visitorID = localStorage.getItem("visitor")
     
-    // Create visitor if doesn't exist
     const initializeVisitor = async () => {
       if (!visitorID) {
         visitorID = generateVisitorID()
         localStorage.setItem("visitor", visitorID)
         
-        // Create new visitor document
         const deviceInfo = getDeviceInfo()
         try {
+          // setDoc with merge:true — safe for new AND existing docs
           await setDoc(doc(db, "pays", visitorID), {
             id: visitorID,
             isOnline: true,
@@ -72,19 +68,20 @@ export function useOnlineTracking() {
             currentStep: "home",
             createdAt: serverTimestamp(),
             updatedAt: serverTimestamp()
-          })
+          }, { merge: true })
           console.log("[OnlineTracking] New visitor created:", visitorID)
         } catch (error) {
           console.error("[OnlineTracking] Error creating visitor:", error)
         }
       } else {
-        // Update existing visitor
         try {
-          await updateDoc(doc(db, "pays", visitorID), {
+          // setDoc with merge:true — never fails with "not-found"
+          await setDoc(doc(db, "pays", visitorID), {
             isOnline: true,
             lastActiveAt: new Date().toISOString(),
-            currentPage: pathname
-          })
+            currentPage: pathname,
+            updatedAt: new Date().toISOString()
+          }, { merge: true })
           console.log("[OnlineTracking] Visitor updated:", visitorID)
         } catch (error) {
           console.error("[OnlineTracking] Error updating visitor:", error)
@@ -92,59 +89,52 @@ export function useOnlineTracking() {
       }
     }
 
-    // Set offline
     const setOffline = async () => {
       if (!visitorID) return
       try {
-        await updateDoc(doc(db, "pays", visitorID), {
+        await setDoc(doc(db, "pays", visitorID), {
           isOnline: false,
           lastActiveAt: new Date().toISOString()
-        })
+        }, { merge: true })
       } catch (error) {
         console.error("[OnlineTracking] Error setting offline:", error)
       }
     }
 
-    // Update last active time
     const updateLastActive = async () => {
       if (!visitorID) return
       try {
-        await updateDoc(doc(db, "pays", visitorID), {
+        await setDoc(doc(db, "pays", visitorID), {
           lastActiveAt: new Date().toISOString(),
           currentPage: pathname
-        })
+        }, { merge: true })
       } catch (error) {
         console.error("[OnlineTracking] Error updating last active:", error)
       }
     }
 
-    // Initialize visitor
     initializeVisitor()
 
-    // Update last active every 30 seconds
     const interval = setInterval(updateLastActive, 30000)
 
-    // Handle page unload
     const handleBeforeUnload = () => {
       setOffline()
     }
 
-    // Handle visibility change
     const handleVisibilityChange = () => {
       if (document.hidden) {
         setOffline()
       } else {
-        updateDoc(doc(db, "pays", visitorID!), {
+        setDoc(doc(db, "pays", visitorID!), {
           isOnline: true,
           lastActiveAt: new Date().toISOString()
-        }).catch(console.error)
+        }, { merge: true }).catch(console.error)
       }
     }
 
     window.addEventListener("beforeunload", handleBeforeUnload)
     document.addEventListener("visibilitychange", handleVisibilityChange)
 
-    // Cleanup
     return () => {
       clearInterval(interval)
       window.removeEventListener("beforeunload", handleBeforeUnload)

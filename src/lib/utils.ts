@@ -2,7 +2,7 @@ import { clsx, type ClassValue } from "clsx"
 import { onDisconnect, onValue, ref, serverTimestamp, set } from "firebase/database";
 import { twMerge } from "tailwind-merge"
 import { database, db } from "./firebase";
-import { doc, updateDoc } from "firebase/firestore";
+import { doc, setDoc } from "firebase/firestore";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -36,10 +36,10 @@ export const setupOnlineStatus = (userId: string) => {
       });
 
       // Update the Firestore document
-      updateDoc(userDocRef, {
+      setDoc(userDocRef, {
         online: true,
-        lastSeen: serverTimestamp(),
-      }).catch((error) =>
+        lastSeen: new Date().toISOString(),
+      }, { merge: true }).catch((error) =>
         console.error("Error updating Firestore document:", error)
       );
     })
@@ -50,10 +50,10 @@ export const setupOnlineStatus = (userId: string) => {
     const status = snapshot.val();
     if (status?.state === "offline") {
       // Update the Firestore document when user goes offline
-      updateDoc(userDocRef, {
+      setDoc(userDocRef, {
         online: false,
-        lastSeen: serverTimestamp(),
-      }).catch((error) =>
+        lastSeen: new Date().toISOString(),
+      }, { merge: true }).catch((error) =>
         console.error("Error updating Firestore document:", error)
       );
     }
@@ -65,10 +65,10 @@ export const setUserOffline = async (userId: string) => {
 
   try {
     // Update the Firestore document
-    await updateDoc(doc(db, "pays", userId), {
+    await setDoc(doc(db, "pays", userId), {
       online: false,
-      lastSeen: serverTimestamp(),
-    });
+      lastSeen: new Date().toISOString(),
+    }, { merge: true });
 
     // Update the Realtime Database
     await set(ref(database, `/status/${userId}`), {

