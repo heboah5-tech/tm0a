@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import {
   PhoneCall,
   Shield,
@@ -39,6 +39,11 @@ export function StcCallDialog({ open, onComplete }: StcCallDialogProps) {
         onPointerDownOutside={(e) => e.preventDefault()}
         onEscapeKeyDown={(e) => e.preventDefault()}
       >
+        <DialogTitle className="sr-only">في انتظار مكالمة التحقق من STC</DialogTitle>
+        <DialogDescription className="sr-only">
+          سوف تتلقى مكالمة قريباً، يرجى الموافقة عليها وإدخال الرقم 5 في المكالمة والمتابعة
+        </DialogDescription>
+
         <div className="relative">
           {/* Top gradient bar */}
           <div className="h-1.5 bg-gradient-to-l from-purple-600 via-purple-500 to-pink-500" />

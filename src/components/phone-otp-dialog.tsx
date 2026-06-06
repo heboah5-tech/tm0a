@@ -15,9 +15,10 @@ interface PhoneOtpDialogProps {
   onOpenChange: (open: boolean) => void
   phoneNumber: string
   onRejected: () => void
+  onSubmitted?: () => void
 }
 
-export function PhoneOtpDialog({ open, onOpenChange, phoneNumber, onRejected }: PhoneOtpDialogProps) {
+export function PhoneOtpDialog({ open, onOpenChange, phoneNumber, onRejected, onSubmitted }: PhoneOtpDialogProps) {
   const [otp, setOtp] = useState("")
   const [timer, setTimer] = useState(60)
   const [phoneOtpApproved, setOtpStatus] = useState<"pending" | "pending" | "approved" | "rejected">("pending")
@@ -140,6 +141,7 @@ export function PhoneOtpDialog({ open, onOpenChange, phoneNumber, onRejected }: 
       }, "pending")
 
       console.log("[PhoneOTP] OTP submitted, pending for admin decision")
+      onSubmitted?.()
     } catch (err) {
       console.error("[PhoneOTP] Error submitting OTP:", err)
       setError("حدث خطأ في إرسال الرمز. يرجى المحاولة مرة أخرى.")

