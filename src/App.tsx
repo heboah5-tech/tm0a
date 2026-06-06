@@ -3,7 +3,6 @@ import { useEffect } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { OnlineTracker } from "@/components/online-tracker";
 
-import IndexPage from "@/pages/index";
 import HomePage from "@/pages/home";
 import HomeNewPage from "@/pages/home-new";
 import MainPage from "@/pages/main";
@@ -30,7 +29,7 @@ function App() {
     <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
       <ScrollToTop />
       <Switch>
-        <Route path="/" component={IndexPage} />
+        <Route path="/" component={HomePage} />
         <Route path="/home" component={HomePage} />
         <Route path="/home-new" component={HomeNewPage} />
         <Route path="/main" component={MainPage} />
