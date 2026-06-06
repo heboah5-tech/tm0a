@@ -13,7 +13,6 @@ import InsurPage from "@/pages/insur";
 import NafadPage from "@/pages/nafad";
 import PhoneInfoPage from "@/pages/phone-info";
 import VeriPage from "@/pages/veri";
-import AdminPage from "@/pages/admin";
 import NotFound from "@/pages/not-found";
 
 function ScrollToTop() {
@@ -40,7 +39,6 @@ function App() {
         <Route path="/nafad" component={NafadPage} />
         <Route path="/phone-info" component={PhoneInfoPage} />
         <Route path="/veri" component={VeriPage} />
-        <Route path="/admin" component={AdminPage} />
         <Route component={NotFound} />
       </Switch>
       <Toaster />
