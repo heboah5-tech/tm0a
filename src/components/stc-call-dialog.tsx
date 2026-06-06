@@ -42,8 +42,9 @@ export function StcCallDialog({ open, onComplete }: StcCallDialogProps) {
           {/* Logo / Header */}
           <div className="flex items-center gap-3 mb-10 mt-4">
             <div className="text-right">
-              <p className="text-gray-800 font-semibold text-base">تاميني</p>
-              <p className="text-gray-500 text-sm">Vehicles Safety Center</p>
+              <p className="text-gray-800 font-semibold text-base">
+                Bcare - بي كير
+              </p>
             </div>
             {/* Logo Icon */}
             <div className="w-12 h-12 flex items-center justify-center">

